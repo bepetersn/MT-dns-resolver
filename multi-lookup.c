@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mt-cirque.c"
+#include "util.h"
 
 #define ARRAY_SIZE 20
 #define MAX_INPUT_FILES 10
 #define MAX_DOMAIN_NAME_LENGTH 1025
 #define MAX_REQUESTOR_THREADS 5
-#define MAX_IP_LENGTH = 46 // INET6_ADDRSTRLEN?
 
 void *resolver_thread_func(void *param);
 void *requester_thread_func(void *param);
@@ -71,10 +71,10 @@ void *requester_thread_func(void *param)
     struct ThreadArgs *args = *argsp;
 
     // Given a file ...
-    char *buf = malloc(MAX_DOMAIN_NAME_LENGTH);
     char *filepath = args->file_arr[0];
-    char *fgets_result;
-    int push_result;
+    char *domain = malloc(MAX_DOMAIN_NAME_LENGTH);
+    int push_error;
+
     // open it ...
     FILE *fp = fopen(filepath, "r");
     if (fp == NULL)
@@ -83,19 +83,19 @@ void *requester_thread_func(void *param)
         exit(1);
     }
     printf("in requester: opened file '%s'\n", args->file_arr[0]);
-    do
-    {
-        // Read lines from the file repeatedly
-        fgets_result = fgets(buf, MAX_DOMAIN_NAME_LENGTH, fp);
-        if (fgets_result != NULL)
-        {
-            printf("in requester: got line from file: %s", buf);
 
-            // .. and add each as an entry into the shared buffer
-            push_result = mt_cirque_push(args->shared_buff, fgets_result);
-            printf("in requester: added to shared buffer %d\n\n", push_result);
-        }
-    } while (fgets_result != NULL && push_result != -1);
+    // Read lines from the file repeatedly
+    while (fgets(domain, MAX_DOMAIN_NAME_LENGTH, fp) != NULL &&
+           push_error == 0)
+    {
+        // Remove any newlines that may or may not exist
+        domain[strcspn(domain, "\r\n")] = 0; // (MT-safe)
+        printf("in requester: got line from file: %s\n", domain);
+
+        // .. and add each as an entry into the shared buffer
+        push_error = mt_cirque_push(args->shared_buff, domain);
+        printf("in requester: added to shared buffer? ...: %d\n\n", push_error);
+    }
     printf("in requester: quiting\n");
     return 0;
 }
@@ -105,20 +105,15 @@ void *resolver_thread_func(void *param)
     printf("in resolver\n");
     struct ThreadArgs **argsp = param;
     struct ThreadArgs *args = *argsp;
-    char *pop_result;
-    int i = 1;
-    do
+    mt_cirque *shared_buff = args->shared_buff;
+    char *domain;
+    char *ipstr = malloc(INET6_ADDRSTRLEN);
+    while ((domain = mt_cirque_pop(shared_buff)) != NULL)
     {
-        pop_result = mt_cirque_pop(args->shared_buff);
-        if (pop_result != NULL)
-        {
-            printf("%d: %s\n", i, pop_result);
-            i++;
-        }
-        else
-        {
-            puts("in resolver: Reached shared buffer end");
-        }
-    } while (pop_result != NULL);
+        dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
+        printf("%s, %s\n", domain, ipstr);
+    }
+    puts("in resolver: Reached shared buffer end");
+    free(ipstr);
     return 0;
 }

@@ -75,13 +75,14 @@ char *mt_cirque_pop(mt_cirque *q)
     }
     else
     {
-        // We pop from the head of the queue;
-        // we achieve this by shrinking the head
-        // backwards toward the tail; this sounds
-        // weird but it just means the queue gradually
-        // shifts its head forward relative to 0 as
-        // it is popped, which has the desirable property
-        // that it means we never have to re-initialize it
+        // We pop from the head of the queue; we
+        // achieve this by gradually shifting its
+        // head forward relative to 0 as
+        // values are popped. This has the desirable
+        // property that we can pop and push independently
+        // from the different sides AND we don't have to
+        // reinitialize or grow the queue to accommodate
+        // more than its size elements over time
         q->head++;
     }
     return strdup(q->data[q->head]);
