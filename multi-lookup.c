@@ -93,7 +93,7 @@ void *requester_thread_func(void *param)
 
             // .. and add each as an entry into the shared buffer
             push_result = mt_cirque_push(args->shared_buff, fgets_result);
-            printf("in requester: added to shared buffer\n\n");
+            printf("in requester: added to shared buffer %d\n\n", push_result);
         }
     } while (fgets_result != NULL && push_result != -1);
     printf("in requester: quiting\n");
@@ -104,12 +104,12 @@ void *resolver_thread_func(void *param)
 {
     printf("in resolver\n");
     struct ThreadArgs **argsp = param;
+    struct ThreadArgs *args = *argsp;
     char *pop_result;
     int i = 1;
     do
     {
-
-        pop_result = mt_cirque_pop((*argsp)->shared_buff);
+        pop_result = mt_cirque_pop(args->shared_buff);
         if (pop_result != NULL)
         {
             printf("%d: %s\n", i, pop_result);
@@ -117,7 +117,7 @@ void *resolver_thread_func(void *param)
         }
         else
         {
-            puts("Reached shared buffer end");
+            puts("in resolver: Reached shared buffer end");
         }
     } while (pop_result != NULL);
     return 0;

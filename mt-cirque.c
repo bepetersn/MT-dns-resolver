@@ -6,6 +6,7 @@
 
 #define MAX_STRING_LENGTH 1025 // characters in string
 #define MAX_QUEUE_CAPACITY 20  // queue string capacity
+#define UNINITIALIZED -1000
 
 typedef struct
 {
@@ -27,7 +28,7 @@ mt_cirque *make_mt_cirque()
     new->head = 0;
     // NOTE: tail is set to NULL when there
     // are no elements in the queue
-    new->tail = -1;
+    new->tail = UNINITIALIZED;
     return new;
 }
 
@@ -38,7 +39,7 @@ int mt_cirque_push(mt_cirque *q, char *str)
         // No space remaining, failure
         return -1;
     }
-    else if (q->tail == -1)
+    else if (q->tail == UNINITIALIZED)
     {
         // Queue was previously empty,
         // so we will push at the head position
@@ -52,28 +53,36 @@ int mt_cirque_push(mt_cirque *q, char *str)
         q->tail = (q->tail + 1) % MAX_QUEUE_CAPACITY;
     }
 
-    char *data[] = q->data;
-    data[q->tail] = strdup(str);
-
+    strcpy(q->data[q->tail], str);
     return 0;
 }
 
 char *mt_cirque_pop(mt_cirque *q)
 {
-    if (q->tail == -1)
+    if (q->tail == UNINITIALIZED)
     {
         // Failure, because we can't pop
         // from an empty queue
         return NULL;
     }
+    else if (q->head == q->tail)
+    {
+        // Uninitalize the tail
+        // to put the queue in a state
+        // of being empty, the inverse
+        // of the push functionality above
+        q->tail = UNINITIALIZED;
+    }
     else
     {
         // We pop from the head of the queue;
         // we achieve this by shrinking the head
-        // backwards toward the tail
+        // backwards toward the tail; this sounds
+        // weird but it just means the queue gradually
+        // shifts its head forward relative to 0 as
+        // it is popped, which has the desirable property
+        // that it means we never have to re-initialize it
         q->head++;
     }
-    char *data[] = q->data;
-    char *str = data[q->head];
-    return strdup(str);
+    return strdup(q->data[q->head]);
 }
