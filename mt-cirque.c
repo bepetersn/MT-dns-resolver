@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_STRING_LENGTH 1025 // characters in string
-#define MAX_QUEUE_CAPACITY 20  // queue string capacity
+#define MAX_STRING_LENGTH 1025 // characters in each string
+#define MAX_QUEUE_CAPACITY 100 // queue capacity
 #define UNINITIALIZED -1000
 
 typedef struct
@@ -13,6 +13,7 @@ typedef struct
     char data[MAX_QUEUE_CAPACITY][MAX_STRING_LENGTH];
     int head;
     int tail;
+    int count;
 } mt_cirque;
 
 void push();
@@ -26,10 +27,20 @@ mt_cirque *make_mt_cirque()
 {
     mt_cirque *new = malloc(sizeof(mt_cirque));
     new->head = 0;
+    new->count = 0;
     // NOTE: tail is set to NULL when there
     // are no elements in the queue
     new->tail = UNINITIALIZED;
     return new;
+}
+
+void mt_cirque_display(mt_cirque *q)
+{
+    printf("head:%s", " ");
+    for (int i = q->head; i < q->count; i++)
+    {
+        printf("'%s' -> ", q->data[i]);
+    }
 }
 
 int mt_cirque_push(mt_cirque *q, char *str)
@@ -54,6 +65,7 @@ int mt_cirque_push(mt_cirque *q, char *str)
     }
 
     strcpy(q->data[q->tail], str);
+    q->count++;
     return 0;
 }
 
@@ -85,5 +97,6 @@ char *mt_cirque_pop(mt_cirque *q)
         // more than its size elements over time
         q->head++;
     }
+    q->count--;
     return strdup(q->data[q->head]);
 }
