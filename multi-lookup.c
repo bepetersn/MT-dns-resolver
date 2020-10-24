@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define ARRAY_SIZE 20
 #define MAX_INPUT_FILES 10
-#define MAX_DOMAIN_NAME_LENGTH 1025 // characters
-#define MAX_RESOLVER_THREADS 10
-#define MAX_REQUESTOR_THREADS = 5
+#define MAX_DOMAIN_NAME_LENGTH 1025
+#define MAX_REQUESTOR_THREADS 5
 #define MAX_IP_LENGTH = 46 // INET6_ADDRSTRLEN?
 
 void *resolver_thread_func(void *param);
@@ -15,8 +15,8 @@ int next_ptr = 0;
 
 struct ThreadArgs
 {
-    char **file_arr;
-    char **shared_buff;
+    char *file_arr[MAX_INPUT_FILES];
+    char *shared_buff[ARRAY_SIZE];
     FILE *log;
 };
 
@@ -29,15 +29,10 @@ int main(int argc, char *argv[])
 
     puts("in main");
 
-    // two shared data structures
-    char *file_arr[] = {argv[1]}; // TODO: append all files as appropriate
-    char *shared_buff[MAX_INPUT_FILES];
-
     // create & serialize pthread_create args
     pthread_t tid1, tid2;
     struct ThreadArgs *thread_args = malloc(sizeof(struct ThreadArgs));
-    thread_args->file_arr = file_arr;
-    thread_args->shared_buff = shared_buff;
+    thread_args->file_arr[0] = argv[1];
 
     // create a thread for parsing
     if (pthread_create(
@@ -65,10 +60,6 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-// void read_file()
-// {
-// }
-
 void *requester_thread_func(void *param)
 {
     printf("in requester\n");
@@ -93,35 +84,26 @@ void *requester_thread_func(void *param)
     do
     {
         result = fgets(buf, MAX_DOMAIN_NAME_LENGTH, fp);
-        printf("in requester: got line from file: %s\n", buf);
+        printf("in requester: got line from file: %s", buf);
 
         // .. and add an entry into the shared buffer
         shared_buff[next_ptr] = buf;
-        // TODO: increment next_ptr
+        next_ptr++;
 
-        printf("in requester: added to shared buffer\n");
-    } while (result != NULL);
+        printf("in requester: added to shared buffer\n\n");
+    } while (result != NULL && next_ptr <= ARRAY_SIZE);
     printf("in requester: quiting\n");
     return 0;
 }
-
 void *resolver_thread_func(void *param)
 {
     printf("in resolver\n");
-
-    // Deserialize args
     struct ThreadArgs **argsp = param;
-    struct ThreadArgs *args = *argsp;
-    char **shared_buff = args->shared_buff;
     int i = 0;
-    int item_size = 8;
-    printf("%lu", sizeof shared_buff);
-    int items_available = sizeof shared_buff / item_size;
-    printf("Found %d elements in shared buffer\n", items_available);
     do
     {
-        printf("%s\n", shared_buff[i]);
+        printf("%d: %s\n", i, (*argsp)->shared_buff[i]);
         i++;
-    } while (i < items_available);
+    } while (i < next_ptr);
     return 0;
 }
