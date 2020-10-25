@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define MAX_STRING_LENGTH 1025 // characters in each string
-#define MAX_QUEUE_CAPACITY 100 // queue capacity
+#define MAX_QUEUE_CAPACITY 20  // queue capacity
 #define UNINITIALIZED -1000
 
 typedef struct
@@ -36,11 +36,17 @@ mt_cirque *make_mt_cirque()
 
 void mt_cirque_display(mt_cirque *q)
 {
-    printf("head:%s", " ");
-    for (int i = q->head; i < q->count; i++)
+    printf("head -> ");
+    int count = q->head + q->count;
+    for (int i = q->head; i < count; i++)
     {
-        printf("'%s' -> ", q->data[i]);
+        printf("%s (%d) ", q->data[i], i);
+        if (i != count - 1)
+        {
+            printf("-> ");
+        }
     }
+    puts("<- tail\n");
 }
 
 int mt_cirque_push(mt_cirque *q, char *str)
