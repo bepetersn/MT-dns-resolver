@@ -3,38 +3,15 @@
 #include "multi-lookup.h"
 // Requirements of just multi-lookup
 #include <pthread.h>
+#include <semaphore.h>
 #include <sys/time.h>
 #include "requester.h"
 #include "resolver.h"
 
-ThreadInfo *init_thread(mt_cirque *file_arr,
-                        mt_cirque *shared_buff,
-                        char *log_path,
-                        thread_func_p thread_func_p,
-                        char *caller_name)
-{
-
-    // create & serialize pthread_create args
-    pthread_t tid;
-    ThreadInfo *t_info = malloc(sizeof(ThreadInfo));
-
-    t_info->file_arr = file_arr;
-    t_info->shared_buff = shared_buff;
-    t_info->log_path = log_path;
-
-    // create a thread for parsing
-    if (pthread_create(
-            &tid, NULL,
-            *thread_func_p,
-            t_info) != 0)
-    {
-        fprintf(stderr, "Unable to create %s thread\n", caller_name);
-        free(t_info);
-        exit(1);
-    }
-    t_info->tid = tid;
-    return t_info;
-}
+/* These are defined in mt_cirque.h 
+   (itself included in multi-lookup.h) */
+extern sem_t items_available;
+extern sem_t space_available;
 
 int main(int argc, char *argv[])
 {
@@ -48,21 +25,38 @@ int main(int argc, char *argv[])
     printf("# resolvers for this run: %s\n", argv[2]);
 
     /* Create shared resources */
+    if (sem_init(&items_available,
+                 0 /* shared between threads */,
+                 0 /* Only 1 use at a time */) != 0)
+    {
+        fputs("Unable to create semaphore\n", stderr);
+        exit(1);
+    }
+    if (sem_init(&space_available,
+                 0 /* shared between threads */,
+                 MAX_QUEUE_CAPACITY /* Only 1 use at a time */) != 0)
+    {
+        fputs("Unable to create semaphore\n", stderr);
+        exit(1);
+    }
+
     mt_cirque *file_arr = make_mt_cirque();
     mt_cirque *shared_buff = make_mt_cirque();
     int arg_index;
     for (arg_index = 5; arg_index < argc; arg_index++)
     {
         printf("queuing %s\n", argv[arg_index]);
-        mt_cirque_push(file_arr, argv[arg_index]);
+        mt_cirque_push(file_arr, argv[arg_index], "main");
     }
+
+    /* Create threads */
 
     ThreadInfo *tinfo1 = init_thread(
         file_arr, shared_buff, argv[3], &requester_thread_func, "requester");
-    pthread_join(tinfo1->tid, NULL);
-
     ThreadInfo *tinfo2 = init_thread(
         file_arr, shared_buff, argv[4], &resolver_thread_func, "resolver");
+
+    pthread_join(tinfo1->tid, NULL);
     pthread_join(tinfo2->tid, NULL);
 
     free(tinfo1);
@@ -75,4 +69,32 @@ int main(int argc, char *argv[])
 
     printf("total time is %f seconds\n", sec_elapsed);
     return 0;
+}
+
+ThreadInfo *init_thread(mt_cirque *file_arr,
+                        mt_cirque *shared_buff,
+                        char *log_path,
+                        thread_func_p thread_func_p,
+                        char *caller_name)
+{
+    // create & serialize pthread_create args
+    pthread_t tid;
+    ThreadInfo *t_info = malloc(sizeof(ThreadInfo));
+
+    t_info->file_arr = file_arr;
+    t_info->shared_buff = shared_buff;
+    t_info->log_path = log_path;
+
+    // create a thread for parsing
+    if (pthread_create(
+            &tid, NULL,
+            thread_func_p,
+            t_info) != 0)
+    {
+        fprintf(stderr, "Unable to create %s thread\n", caller_name);
+        free(t_info);
+        exit(1);
+    }
+    t_info->tid = tid;
+    return t_info;
 }

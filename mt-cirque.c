@@ -27,8 +27,11 @@ void mt_cirque_display(mt_cirque *q)
     puts("<- tail\n");
 }
 
-int mt_cirque_push(mt_cirque *q, char *str)
+int mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
 {
+    printf("in %s: acquiring space_available\n", caller_name);
+    fflush(stdout);
+    sem_wait(&space_available);
     if ((q->tail + 1) % MAX_QUEUE_CAPACITY == q->head)
     {
         // No space remaining, failure
@@ -50,13 +53,16 @@ int mt_cirque_push(mt_cirque *q, char *str)
 
     strcpy(q->data[q->tail], str);
     q->count++;
+    printf("in %s: releasing items_available\n", caller_name);
+    sem_post(&items_available);
     return 0;
 }
 
-char *mt_cirque_pop(mt_cirque *q)
+char *mt_cirque_pop(mt_cirque *q, char *caller_name)
 {
     char *popped;
-    // mt_cirque_display(q);
+    printf("in %s: acquiring items_available\n", caller_name);
+    sem_wait(&items_available);
     if (q->tail == UNINITIALIZED)
     {
         // Failure, because we can't pop
@@ -85,6 +91,8 @@ char *mt_cirque_pop(mt_cirque *q)
             q->head = (q->head + 1) % MAX_QUEUE_CAPACITY;
         }
         q->count--;
+        printf("in %s: releasing space_available\n", caller_name);
+        sem_post(&space_available);
         return popped;
     }
 }

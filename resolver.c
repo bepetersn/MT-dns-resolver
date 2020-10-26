@@ -1,30 +1,35 @@
 
 #include "resolver.h"
 
+extern sem_t items_available;
+extern sem_t space_available;
+
 void *resolver_thread_func(void *param)
 {
     printf("in resolver\n");
 
     ThreadInfo *args = (ThreadInfo *)param;
-    mt_cirque *shared_buff = args->shared_buff;
     char *domain;
     char *ipstr = malloc(INET6_ADDRSTRLEN);
     char *result_line = malloc(INET6_ADDRSTRLEN + MAX_DOMAIN_NAME_LENGTH + 4);
 
-    // fopen and write results out
+    // fopen a log file for our results
     FILE *fp = try_fopen(args->log_path, "w", "resolver"); // MT-safe
 
-    while ((domain = mt_cirque_pop(shared_buff)) != NULL)
+    while (args->file_arr->count > 0) // WRONG because we're popping from the file_arr, i.e. preventing the requester from doing its job potentially
     {
-        dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
-        if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
+        while ((domain = mt_cirque_pop(args->shared_buff, "resolver")))
         {
+            dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
+            if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
+            {
 
-            fputs("Failed to write results", stderr);
-            exit(1);
+                fputs("Failed to write results", stderr);
+                exit(1);
+            }
+            puts(result_line);
+            fputs(result_line, fp);
         }
-        puts(result_line);
-        fputs(result_line, fp);
     }
     fclose(fp);
     puts("in resolver: Reached shared buffer end");

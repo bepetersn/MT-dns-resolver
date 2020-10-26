@@ -24,4 +24,10 @@ typedef struct
    valid for use as the 3rd parameter to pthread_create */
 typedef void *(*thread_func_p)(void *);
 
+ThreadInfo *init_thread(mt_cirque *file_arr,
+                        mt_cirque *shared_buff,
+                        char *log_path,
+                        thread_func_p thread_func_p,
+                        char *caller_name);
+
 #endif
