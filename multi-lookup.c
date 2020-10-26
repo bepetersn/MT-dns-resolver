@@ -35,10 +35,16 @@ int main(int argc, char *argv[])
 
     thread_args->file_arr = make_mt_cirque();
     thread_args->shared_buff = make_mt_cirque();
-    for (i = 0; i < argc - 1; i++)
+
+    // TODO: this needs its own section / func
+    printf("# requesters for this run: %s\n", argv[1]);
+    printf("# resolvers for this run: %s\n", argv[2]);
+    printf("# requester log filename: %s\n", argv[3]);
+    printf("# resolver log filename: %s\n", argv[4]);
+    for (i = 5; i < argc; i++)
     {
-        printf("queuing %s\n", argv[i + 1]);
-        mt_cirque_push(thread_args->file_arr, argv[i + 1]);
+        printf("queuing %s\n", argv[i]);
+        mt_cirque_push(thread_args->file_arr, argv[i]);
     }
 
     // create a thread for parsing
