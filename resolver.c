@@ -4,8 +4,8 @@
 void *resolver_thread_func(void *param)
 {
     printf("in resolver\n");
-    struct ThreadArgs **argsp = param;
-    struct ThreadArgs *args = *argsp;
+
+    ThreadInfo *args = (ThreadInfo *)param;
     mt_cirque *shared_buff = args->shared_buff;
     char *domain;
     char *ipstr = malloc(INET6_ADDRSTRLEN);

@@ -6,8 +6,8 @@ void *requester_thread_func(void *param)
     printf("in requester\n");
 
     // Deserialize args
-    struct ThreadArgs **argsp = param;
-    struct ThreadArgs *args = *argsp;
+    ThreadInfo *args = (ThreadInfo *)param;
+
     char *filepath;
     char *domain = malloc(MAX_DOMAIN_NAME_LENGTH);
     int push_error;
@@ -39,6 +39,6 @@ void *requester_thread_func(void *param)
     }
     fclose(log);
     free(domain);
-    printf("in requester: quiting\n");
+    printf("in requester: quitting\n");
     return 0;
 }

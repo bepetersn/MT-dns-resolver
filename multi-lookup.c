@@ -7,6 +7,35 @@
 #include "requester.h"
 #include "resolver.h"
 
+ThreadInfo *init_thread(mt_cirque *file_arr,
+                        mt_cirque *shared_buff,
+                        char *log_path,
+                        thread_func_p thread_func_p,
+                        char *caller_name)
+{
+
+    // create & serialize pthread_create args
+    pthread_t tid;
+    ThreadInfo *t_info = malloc(sizeof(ThreadInfo));
+
+    t_info->file_arr = file_arr;
+    t_info->shared_buff = shared_buff;
+    t_info->log_path = log_path;
+
+    // create a thread for parsing
+    if (pthread_create(
+            &tid, NULL,
+            *thread_func_p,
+            t_info) != 0)
+    {
+        fprintf(stderr, "Unable to create %s thread\n", caller_name);
+        free(t_info);
+        exit(1);
+    }
+    t_info->tid = tid;
+    return t_info;
+}
+
 int main(int argc, char *argv[])
 {
     struct timeval t1;
@@ -14,52 +43,31 @@ int main(int argc, char *argv[])
     float sec_elapsed;
     gettimeofday(&t1, NULL);
 
-    puts("in main");
-
-    // create & serialize pthread_create args
-    int i;
-    pthread_t tid1, tid2;
-    struct ThreadArgs *thread_args = malloc(sizeof(struct ThreadArgs));
-
-    thread_args->file_arr = make_mt_cirque();
-    thread_args->shared_buff = make_mt_cirque();
-
-    // TODO: this needs its own section / func
+    // TODO: write this to performance.txt
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
-    thread_args->log_path = argv[3];
-    for (i = 5; i < argc; i++)
+
+    /* Create shared resources */
+    mt_cirque *file_arr = make_mt_cirque();
+    mt_cirque *shared_buff = make_mt_cirque();
+    int arg_index;
+    for (arg_index = 5; arg_index < argc; arg_index++)
     {
-        printf("queuing %s\n", argv[i]);
-        mt_cirque_push(thread_args->file_arr, argv[i]);
+        printf("queuing %s\n", argv[arg_index]);
+        mt_cirque_push(file_arr, argv[arg_index]);
     }
 
-    // create a thread for parsing
-    if (pthread_create(
-            &tid1, NULL,
-            requester_thread_func,
-            &thread_args) != 0)
-    {
-        fprintf(stderr, "Unable to create requester thread\n");
-        exit(1);
-    }
+    ThreadInfo *tinfo1 = init_thread(
+        file_arr, shared_buff, argv[3], &requester_thread_func, "requester");
+    pthread_join(tinfo1->tid, NULL);
 
-    pthread_join(tid1, NULL);
+    ThreadInfo *tinfo2 = init_thread(
+        file_arr, shared_buff, argv[4], &resolver_thread_func, "resolver");
+    pthread_join(tinfo2->tid, NULL);
 
-    // TODO: Use a separate instead of thead_args for diff. types
-    thread_args->log_path = argv[4];
-    if (pthread_create(
-            &tid2, NULL,
-            resolver_thread_func,
-            &thread_args) != 0)
-    {
-        fprintf(stderr, "Unable to create consumer thread\n");
-        exit(1);
-    }
-    pthread_join(tid2, NULL);
-
-    free(thread_args);
-    printf("Parent quiting\n");
+    free(tinfo1);
+    free(tinfo2);
+    printf("Parent quitting\n");
 
     gettimeofday(&t2, NULL);
     sec_elapsed = (float)(t2.tv_sec - t1.tv_sec) +
