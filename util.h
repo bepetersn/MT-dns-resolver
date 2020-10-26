@@ -35,8 +35,10 @@
  * for hostname. IP address returned as string
  * firstIPstr of size maxsize
  */
-int dnslookup(const char* hostname,
-	      char* firstIPstr,
-	      int maxSize);
+int dnslookup(const char *hostname,
+			  char *firstIPstr,
+			  int maxSize);
 
+FILE *try_fopen(char *filepath,
+				char *mode, char *caller_name);
 #endif
