@@ -16,8 +16,22 @@ struct ThreadArgs
 {
     mt_cirque *file_arr;
     mt_cirque *shared_buff;
-    FILE *log;
+    char *log_path;
 };
+
+FILE *try_fopen(char *filepath, char *mode, char *caller_name)
+{
+    FILE *fp = fopen(filepath, mode);
+    if (fp == NULL)
+    {
+        fprintf(stderr, "in %s: failed to open file: %s\n",
+                caller_name, filepath);
+        exit(1);
+    }
+    printf("in %s: opened file '%s'\n",
+           caller_name, filepath);
+    return fp;
+}
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +54,7 @@ int main(int argc, char *argv[])
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
     printf("# requester log filename: %s\n", argv[3]);
+    thread_args->log_path = argv[3];
     printf("# resolver log filename: %s\n", argv[4]);
     for (i = 5; i < argc; i++)
     {
@@ -58,6 +73,9 @@ int main(int argc, char *argv[])
     }
 
     pthread_join(tid1, NULL);
+
+    // TODO: Use a separate instead of thead_args for diff. types
+    thread_args->log_path = argv[4];
     if (pthread_create(
             &tid2, NULL,
             resolver_thread_func,
@@ -82,18 +100,15 @@ void *requester_thread_func(void *param)
     char *domain = malloc(MAX_DOMAIN_NAME_LENGTH);
     int push_error;
 
+    // Open our logfile
+    FILE *log = try_fopen(args->log_path, "w", "requester");
+
     // While files_arr is not empty, take from files_arr
     while ((filepath = mt_cirque_pop(args->file_arr)) != NULL)
     {
 
-        // open it ...
-        FILE *fp = fopen(filepath, "r");
-        if (fp == NULL)
-        {
-            printf("in requester: failed to open file: %s\n", filepath);
-            exit(1);
-        }
-        printf("in requester: opened file '%s'\n", filepath);
+        // open the file from the array
+        FILE *fp = try_fopen(filepath, "r", "requester");
 
         // Read lines from the file repeatedly (MT-safe)
         while (fgets(domain, MAX_DOMAIN_NAME_LENGTH, fp) != NULL &&
@@ -101,13 +116,16 @@ void *requester_thread_func(void *param)
         {
             // Remove any newlines that may or may not exist
             domain[strcspn(domain, "\r\n")] = 0; // (MT-safe)
-            printf("in requester: got line from file: %s\n", domain);
+            // printf("in requester: got line from file: %s\n", domain);
 
             // .. and add each as an entry into the shared buffer
             push_error = mt_cirque_push(args->shared_buff, domain);
-            printf("in requester: added to shared buffer? : %d\n\n", push_error);
+            fprintf(log, "%s\n", domain);
+            // printf("in requester: added to shared buffer? : %d\n\n", push_error);
         }
+        fclose(fp);
     }
+    fclose(log);
     free(domain);
     printf("in requester: quiting\n");
     return 0;
@@ -121,12 +139,26 @@ void *resolver_thread_func(void *param)
     mt_cirque *shared_buff = args->shared_buff;
     char *domain;
     char *ipstr = malloc(INET6_ADDRSTRLEN);
+    char *result_line = malloc(INET6_ADDRSTRLEN + MAX_DOMAIN_NAME_LENGTH + 4);
+
+    // fopen and write results out
+    FILE *fp = try_fopen(args->log_path, "w", "resolver"); // MT-safe
+
     while ((domain = mt_cirque_pop(shared_buff)) != NULL)
     {
         dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
-        printf("%s, %s\n", domain, ipstr);
+        if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
+        {
+
+            fputs("Failed to write results", stderr);
+            exit(1);
+        }
+        puts(result_line);
+        fputs(result_line, fp);
     }
+    fclose(fp);
     puts("in resolver: Reached shared buffer end");
     free(ipstr);
+    free(result_line);
     return 0;
 }
