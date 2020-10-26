@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include "mt-cirque.c"
+#include "mt-cirque.h"
 #include "util.h"
 
 #define MAX_INPUT_FILES 10      // TODO: Enforce
