@@ -78,7 +78,7 @@ int mt_cirque_push(mt_cirque *q, char *str)
 char *mt_cirque_pop(mt_cirque *q)
 {
     char *popped;
-    mt_cirque_display(q);
+    // mt_cirque_display(q);
     if (q->tail == UNINITIALIZED)
     {
         // Failure, because we can't pop

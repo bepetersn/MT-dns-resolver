@@ -85,6 +85,8 @@ int main(int argc, char *argv[])
         exit(1);
     }
     pthread_join(tid2, NULL);
+
+    free(thread_args);
     printf("Parent quiting\n");
     return 0;
 }
