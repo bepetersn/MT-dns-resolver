@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include "mt-cirque.c"
 #include "util.h"
 
@@ -35,10 +36,10 @@ FILE *try_fopen(char *filepath, char *mode, char *caller_name)
 
 int main(int argc, char *argv[])
 {
-    // create an array of files
-    // create shared_buffer
-    // create logs
-    //
+    struct timeval t1;
+    struct timeval t2;
+    float sec_elapsed;
+    gettimeofday(&t1, NULL);
 
     puts("in main");
 
@@ -53,9 +54,7 @@ int main(int argc, char *argv[])
     // TODO: this needs its own section / func
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
-    printf("# requester log filename: %s\n", argv[3]);
     thread_args->log_path = argv[3];
-    printf("# resolver log filename: %s\n", argv[4]);
     for (i = 5; i < argc; i++)
     {
         printf("queuing %s\n", argv[i]);
@@ -88,6 +87,12 @@ int main(int argc, char *argv[])
 
     free(thread_args);
     printf("Parent quiting\n");
+
+    gettimeofday(&t2, NULL);
+    sec_elapsed = (float)(t2.tv_sec - t1.tv_sec) +
+                  (float)(t2.tv_usec - t1.tv_usec) * 1.0e-6;
+
+    printf("total time is %f seconds\n", sec_elapsed);
     return 0;
 }
 
