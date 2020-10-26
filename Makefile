@@ -9,8 +9,8 @@ LIBS = -lpthread
 MAIN = multi-lookup
 
 # Add any additional .c files to SRCS and .h files to HDRS
-SRCS = multi-lookup.c util.c
-HDRS = multi-lookup.h util.h
+SRCS = multi-lookup.c util.c mt-cirque.c requester.c 
+HDRS = multi-lookup.h util.h mt-cirque.h requester.h
 
 OBJS = $(SRCS:.c=.o) 
 
