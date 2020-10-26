@@ -101,9 +101,9 @@ FILE *try_fopen(char *filepath, char *mode, char *caller_name)
 	{
 		fprintf(stderr, "in %s: failed to open file: '%s'\n",
 				caller_name, filepath);
-		exit(1);
+		exit(1); // TODO: Use pthread_exit
 	}
-	printf("in %s: opened file '%s'\n",
+	printf("in %s: opened file '%s' \n",
 		   caller_name, filepath);
 	return fp;
 }

@@ -3,9 +3,73 @@
 #include "multi-lookup.h"
 // Requirements of just multi-lookup
 #include <pthread.h>
+#include <semaphore.h>
 #include <sys/time.h>
 #include "requester.h"
 #include "resolver.h"
+
+/* These are defined in mt_cirque.h 
+   (itself included in multi-lookup.h) */
+extern sem_t items_available;
+extern sem_t space_available;
+
+int main(int argc, char *argv[])
+{
+    struct timeval t1;
+    struct timeval t2;
+    float sec_elapsed;
+    gettimeofday(&t1, NULL);
+
+    // TODO: write this to performance.txt
+    printf("# requesters for this run: %s\n", argv[1]);
+    printf("# resolvers for this run: %s\n", argv[2]);
+
+    /* Create shared resources */
+    char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH];
+    if (sem_init(&items_available,
+                 0 /* shared between threads */,
+                 0 /* Only 1 use at a time */) != 0)
+    {
+        fputs("Unable to create semaphore\n", stderr);
+        exit(1);
+    }
+    if (sem_init(&space_available,
+                 0 /* shared between threads */,
+                 MAX_QUEUE_CAPACITY /* Only 1 use at a time */) != 0)
+    {
+        fputs("Unable to create semaphore\n", stderr);
+        exit(1);
+    }
+
+    mt_cirque *shared_buff = make_mt_cirque();
+    int arg_index;
+    for (arg_index = 5; arg_index < argc; arg_index++)
+    {
+        printf("queuing %s\n", argv[arg_index]);
+        strcpy(file_arr[arg_index - 5], argv[arg_index]);
+    }
+
+    /* Create threads */
+
+    ThreadInfo *tinfo1 = init_thread(
+        file_arr, shared_buff, argv[3], &requester_thread_func, "requester");
+    ThreadInfo *tinfo2 = init_thread(
+        file_arr, shared_buff, argv[4], &resolver_thread_func, "resolver");
+
+    pthread_join(tinfo1->tid, NULL);
+    pthread_join(tinfo2->tid, NULL);
+
+    free(tinfo1);
+    free(tinfo2);
+    printf("Parent quitting\n");
+
+    gettimeofday(&t2, NULL);
+    sec_elapsed = (float)(t2.tv_sec - t1.tv_sec) +
+                  (float)(t2.tv_usec - t1.tv_usec) * 1.0e-6;
+
+    printf("total time is %f seconds\n", sec_elapsed);
+    return 0;
+}
 
 ThreadInfo *init_thread(char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH],
                         mt_cirque *shared_buff,
@@ -43,45 +107,4 @@ ThreadInfo *init_thread(char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH],
     }
     t_info->tid = tid;
     return t_info;
-}
-
-int main(int argc, char *argv[])
-{
-    struct timeval t1;
-    struct timeval t2;
-    float sec_elapsed;
-    gettimeofday(&t1, NULL);
-
-    // TODO: write this to performance.txt
-    printf("# requesters for this run: %s\n", argv[1]);
-    printf("# resolvers for this run: %s\n", argv[2]);
-
-    /* Create shared resources */
-    char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH];
-    mt_cirque *shared_buff = make_mt_cirque();
-    int arg_index;
-    for (arg_index = 5; arg_index < argc; arg_index++)
-    {
-        printf("queuing %s\n", argv[arg_index]);
-        strcpy(file_arr[arg_index - 5], argv[arg_index]);
-    }
-
-    ThreadInfo *tinfo1 = init_thread(
-        file_arr, shared_buff, argv[3], &requester_thread_func, "requester");
-    pthread_join(tinfo1->tid, NULL);
-
-    ThreadInfo *tinfo2 = init_thread(
-        file_arr, shared_buff, argv[4], &resolver_thread_func, "resolver");
-    pthread_join(tinfo2->tid, NULL);
-
-    free(tinfo1);
-    free(tinfo2);
-    printf("Parent quitting\n");
-
-    gettimeofday(&t2, NULL);
-    sec_elapsed = (float)(t2.tv_sec - t1.tv_sec) +
-                  (float)(t2.tv_usec - t1.tv_usec) * 1.0e-6;
-
-    printf("total time is %f seconds\n", sec_elapsed);
-    return 0;
 }

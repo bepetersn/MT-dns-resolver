@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <semaphore.h>
 
 #define MAX_STRING_LENGTH 1025 // characters in each string
 #define MAX_QUEUE_CAPACITY 20  // queue capacity
@@ -15,7 +16,10 @@ typedef struct
     int count;
 } mt_cirque;
 
-int mt_cirque_push();
-char *mt_cirque_pop();
-void mt_cirque_display();
-mt_cirque *make_mt_cirque();
+int mt_cirque_push(mt_cirque *q, char *str, char *caller_name);
+char *mt_cirque_pop(mt_cirque *q, char *caller_name);
+void mt_cirque_display(mt_cirque *q);
+mt_cirque *make_mt_cirque(void);
+
+sem_t items_available;
+sem_t space_available;
