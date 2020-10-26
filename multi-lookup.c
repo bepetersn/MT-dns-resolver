@@ -108,6 +108,7 @@ void *requester_thread_func(void *param)
             printf("in requester: added to shared buffer? : %d\n\n", push_error);
         }
     }
+    free(domain);
     printf("in requester: quiting\n");
     return 0;
 }
