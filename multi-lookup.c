@@ -1,24 +1,5 @@
 
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include "mt-cirque.h"
-#include "util.h"
-
-#define MAX_INPUT_FILES 10      // TODO: Enforce
-#define MAX_REQUESTOR_THREADS 5 // TODO: Enforce
-#define MAX_DOMAIN_NAME_LENGTH 1025
-
-void *resolver_thread_func(void *param);
-void *requester_thread_func(void *param);
-
-struct ThreadArgs
-{
-    mt_cirque *file_arr;
-    mt_cirque *shared_buff;
-    char *log_path;
-};
+#include "multi-lookup.h"
 
 FILE *try_fopen(char *filepath, char *mode, char *caller_name)
 {
