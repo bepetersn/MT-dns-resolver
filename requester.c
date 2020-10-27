@@ -8,7 +8,7 @@ void *requester_thread_func(void *param)
     // Deserialize args
     ThreadInfo *args = (ThreadInfo *)param;
 
-    char *filepath;
+    char filepath[MAX_DOMAIN_NAME_LENGTH];
     char *domain = malloc(MAX_DOMAIN_NAME_LENGTH);
     int push_error;
 
@@ -16,9 +16,13 @@ void *requester_thread_func(void *param)
     FILE *log = try_fopen(args->log_path, "w", "requester");
 
     // While files_arr is not empty, take from files_arr
-    while ((filepath = mt_cirque_pop(args->file_arr)) != NULL)
+    for (int file_index = 0; file_index < MAX_INPUT_FILES; file_index++)
     {
-
+        strcpy(filepath, args->file_arr[file_index]);
+        if (!strlen(filepath))
+        {
+            break;
+        }
         // open the file from the array
         FILE *fp = try_fopen(filepath, "r", "requester");
 
@@ -32,6 +36,7 @@ void *requester_thread_func(void *param)
 
             // .. and add each as an entry into the shared buffer
             push_error = mt_cirque_push(args->shared_buff, domain);
+            printf("%s\n", domain);
             fprintf(log, "%s\n", domain);
             // printf("in requester: added to shared buffer? : %d\n\n", push_error);
         }

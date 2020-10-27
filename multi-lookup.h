@@ -14,10 +14,10 @@
 
 typedef struct
 {
-    pthread_t tid;
-    mt_cirque *file_arr;
-    mt_cirque *shared_buff;
-    char *log_path;
+   pthread_t tid;
+   char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH];
+   mt_cirque *shared_buff;
+   char *log_path;
 } ThreadInfo;
 
 /* Declare a type which is a pointer to a function 

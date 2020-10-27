@@ -23,7 +23,7 @@ void *resolver_thread_func(void *param)
             fputs("Failed to write results", stderr);
             exit(1);
         }
-        puts(result_line);
+        printf("%s", result_line); // NOTE: There is a newline present
         fputs(result_line, fp);
     }
     fclose(fp);
