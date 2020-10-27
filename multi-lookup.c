@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
     printf("# resolvers for this run: %s\n", argv[2]);
 
     /* Create shared resources */
+    char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH];
     if (sem_init(&items_available,
                  0 /* shared between threads */,
                  0 /* Only 1 use at a time */) != 0)
@@ -40,13 +41,12 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    mt_cirque *file_arr = make_mt_cirque();
     mt_cirque *shared_buff = make_mt_cirque();
     int arg_index;
     for (arg_index = 5; arg_index < argc; arg_index++)
     {
         printf("queuing %s\n", argv[arg_index]);
-        mt_cirque_push(file_arr, argv[arg_index], "main");
+        strcpy(file_arr[arg_index - 5], argv[arg_index]);
     }
 
     /* Create threads */
@@ -71,24 +71,34 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-ThreadInfo *init_thread(mt_cirque *file_arr,
+ThreadInfo *init_thread(char file_arr[MAX_INPUT_FILES][MAX_DOMAIN_NAME_LENGTH],
                         mt_cirque *shared_buff,
                         char *log_path,
                         thread_func_p thread_func_p,
                         char *caller_name)
 {
+
     // create & serialize pthread_create args
     pthread_t tid;
     ThreadInfo *t_info = malloc(sizeof(ThreadInfo));
 
-    t_info->file_arr = file_arr;
+    // Copy files into t_info
+    for (int i = 0; i < MAX_INPUT_FILES; i++)
+    {
+        if (!strlen(file_arr[i]))
+        {
+            break;
+        }
+        strcpy(t_info->file_arr[i], strdup(file_arr[i]));
+    }
+
     t_info->shared_buff = shared_buff;
     t_info->log_path = log_path;
 
     // create a thread for parsing
     if (pthread_create(
             &tid, NULL,
-            thread_func_p,
+            *thread_func_p,
             t_info) != 0)
     {
         fprintf(stderr, "Unable to create %s thread\n", caller_name);

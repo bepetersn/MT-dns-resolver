@@ -16,9 +16,14 @@ void *resolver_thread_func(void *param)
     // fopen a log file for our results
     FILE *fp = try_fopen(args->log_path, "w", "resolver"); // MT-safe
 
-    while (args->file_arr->count > 0) // WRONG because we're popping from the file_arr, i.e. preventing the requester from doing its job potentially
+    while ((domain = mt_cirque_pop(args->shared_buff, "resolver")))
     {
-        while ((domain = mt_cirque_pop(args->shared_buff, "resolver")))
+        if (strcmp(domain, "NULL") == 0)
+        {
+            break;
+        }
+        dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
+        if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
         {
             dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
             if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
@@ -31,6 +36,7 @@ void *resolver_thread_func(void *param)
             fputs(result_line, fp);
         }
     }
+
     fclose(fp);
     puts("in resolver: Reached shared buffer end");
     free(ipstr);
