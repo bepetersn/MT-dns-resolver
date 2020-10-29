@@ -32,6 +32,7 @@ void *resolver_thread_func(void *param)
 
     fclose(fp);
     puts("in resolver: Reached shared buffer end");
+    fflush(stdout);
     free(ipstr);
     free(result_line);
     return 0;

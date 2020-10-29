@@ -29,17 +29,43 @@ int main(int argc, char *argv[])
     }
 
     /* Create threads */
+    int all_thread_index = 0;
+    ThreadInfo *all_thread_infos[MAX_REQUESTOR_THREADS + MAX_RESOLVER_THREADS];
 
-    ThreadInfo *tinfo1 = init_thread(
-        file_arr, shared_buff, argv[3], &requester_thread_func, "requester");
-    ThreadInfo *tinfo2 = init_thread(
-        file_arr, shared_buff, argv[4], &resolver_thread_func, "resolver");
+    /* Requesters */
+    for (int req_thread_index = 1;
+         req_thread_index <= atoi(argv[1]); req_thread_index++)
+    {
+        ThreadInfo *req_tinfo = init_thread(
+            file_arr, shared_buff, argv[3],
+            &requester_thread_func, "requester");
+        printf("requester #%d\n", req_thread_index);
+        all_thread_infos[all_thread_index] = req_tinfo;
+        all_thread_index++;
+    }
 
-    pthread_join(tinfo1->tid, NULL);
-    pthread_join(tinfo2->tid, NULL);
+    /* Resolvers */
+    for (int res_thread_index = 1;
+         res_thread_index <= atoi(argv[2]); res_thread_index++)
+    {
+        ThreadInfo *res_tinfo = init_thread(
+            file_arr, shared_buff, argv[4],
+            &resolver_thread_func, "resolver");
+        printf("resolver #%d\n", res_thread_index);
+        all_thread_infos[all_thread_index] = res_tinfo;
+        all_thread_index++;
+    }
 
-    free(tinfo1);
-    free(tinfo2);
+    /* Wait and clean up */
+    for (int thread_index = 0;
+         thread_index < all_thread_index; thread_index++)
+    {
+        printf("thread finished: %ld\n", all_thread_infos[thread_index]->tid % 1000);
+        fflush(stdout);
+        pthread_join(all_thread_infos[thread_index]->tid, NULL);
+        // free(all_thread_infos[thread_index]);
+    }
+
     printf("Parent quitting\n");
 
     gettimeofday(&t2, NULL);
@@ -72,7 +98,8 @@ ThreadInfo *init_thread(mt_cirque *file_arr,
             t_info) != 0)
     {
         fprintf(stderr, "Unable to create %s thread\n", caller_name);
-        free(t_info);
+        fflush(stderr);
+        // free(t_info);
         exit(1);
     }
     t_info->tid = tid;

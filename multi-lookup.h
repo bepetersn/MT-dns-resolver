@@ -10,6 +10,7 @@
 
 #define MAX_INPUT_FILES 10      // TODO: Enforce
 #define MAX_REQUESTOR_THREADS 5 // TODO: Enforce
+#define MAX_RESOLVER_THREADS 5  // TOOD: Enforce
 #define MAX_DOMAIN_NAME_LENGTH 1025
 
 typedef struct
