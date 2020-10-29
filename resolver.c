@@ -1,9 +1,6 @@
 
 #include "resolver.h"
 
-extern sem_t items_available;
-extern sem_t space_available;
-
 void *resolver_thread_func(void *param)
 {
     printf("in resolver\n");
@@ -25,16 +22,12 @@ void *resolver_thread_func(void *param)
         dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
         if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
         {
-            dnslookup(domain, ipstr, INET6_ADDRSTRLEN);
-            if (sprintf(result_line, "%s, %s\n", domain, ipstr) < 0)
-            {
 
-                fputs("Failed to write results", stderr);
-                exit(1);
-            }
-            puts(result_line);
-            fputs(result_line, fp);
+            fputs("Failed to write results", stderr);
+            exit(1);
         }
+        printf("resolved: %s", result_line);
+        fputs(result_line, fp);
     }
 
     fclose(fp);
