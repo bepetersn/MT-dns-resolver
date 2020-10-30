@@ -14,6 +14,7 @@
 
 typedef struct
 {
+    char *name;
     char data[MAX_QUEUE_CAPACITY][MAX_STRING_LENGTH];
     int head;
     int tail;
@@ -26,4 +27,4 @@ int mt_cirque_push(mt_cirque *q, char *str, char *caller_name);
 char *mt_cirque_pop(mt_cirque *q, char *caller_name);
 int mt_cirque_has_items_available(mt_cirque *q);
 void mt_cirque_display(mt_cirque *q);
-mt_cirque *make_mt_cirque(void);
+mt_cirque *make_mt_cirque(char *name);

@@ -1,9 +1,10 @@
 
 #include "mt-cirque.h"
 
-mt_cirque *make_mt_cirque()
+mt_cirque *make_mt_cirque(char *name)
 {
     mt_cirque *new = malloc(sizeof(mt_cirque));
+    new->name = name;
     new->head = 0;
     new->count = 0;
     // NOTE: tail is set to NULL when there
@@ -69,7 +70,8 @@ int mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
 
     strcpy(q->data[q->tail], str);
     q->count++;
-    printf("in %s: releasing items_available\n", caller_name);
+    printf("in %s: acquiring items_available for %s (end push)\n",
+           q->name, caller_name);
     sem_post(&q->items_available);
     return 0;
 }
@@ -84,7 +86,8 @@ int mt_cirque_has_items_available(mt_cirque *q)
 char *mt_cirque_pop(mt_cirque *q, char *caller_name)
 {
     char *popped;
-    printf("in %s: acquiring items_available\n", caller_name);
+    printf("in %s: acquiring items_available for %s (start pop)\n",
+           q->name, caller_name);
     sem_wait(&q->items_available);
     if (q->tail == UNINITIALIZED)
     {
@@ -114,7 +117,8 @@ char *mt_cirque_pop(mt_cirque *q, char *caller_name)
             q->head = (q->head + 1) % MAX_QUEUE_CAPACITY;
         }
         q->count--;
-        printf("in %s: releasing space_available\n", caller_name);
+        printf("in %s: releasing space_available for %s (end pop)\n",
+               q->name, caller_name);
         sem_post(&q->space_available);
         return popped;
     }

@@ -20,8 +20,8 @@ int main(int argc, char *argv[])
     printf("# resolvers for this run: %s\n", argv[2]);
 
     /* Create shared resources */
-    mt_cirque *file_arr = make_mt_cirque();
-    mt_cirque *shared_buff = make_mt_cirque();
+    mt_cirque *file_arr = make_mt_cirque("file arr");
+    mt_cirque *shared_buff = make_mt_cirque("shared buff");
     for (int arg_index = 5; arg_index < argc; arg_index++)
     {
         printf("queuing %s\n", argv[arg_index]);
