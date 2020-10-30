@@ -44,17 +44,20 @@ void mt_cirque_display(mt_cirque *q)
     puts("<- tail\n");
 }
 
-int mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
+int mt_cirque_has_items_available(mt_cirque *q)
 {
-    printf("in %s: acquiring space_available\n", caller_name);
+    int result;
+    sem_getvalue(&q->items_available, &result);
+    return result;
+}
+
+void mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
+{
+    printf("in %s: acquiring space_available for %s (start push)\n",
+           q->name, caller_name);
     fflush(stdout);
     sem_wait(&q->space_available);
-    if ((q->tail + 1) % MAX_QUEUE_CAPACITY == q->head)
-    {
-        // No space remaining, failure
-        return -1;
-    }
-    else if (q->tail == UNINITIALIZED)
+    if (q->tail == UNINITIALIZED)
     {
         // Queue was previously empty,
         // so we will push at the head position
@@ -73,14 +76,7 @@ int mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
     printf("in %s: acquiring items_available for %s (end push)\n",
            q->name, caller_name);
     sem_post(&q->items_available);
-    return 0;
-}
-
-int mt_cirque_has_items_available(mt_cirque *q)
-{
-    int result;
-    sem_getvalue(&q->items_available, &result);
-    return result;
+    return;
 }
 
 char *mt_cirque_pop(mt_cirque *q, char *caller_name)
