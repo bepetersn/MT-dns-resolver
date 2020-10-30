@@ -11,16 +11,23 @@ mt_cirque *make_mt_cirque(char *name)
     // are no elements in the queue
     new->tail = UNINITIALIZED;
 
+    if (sem_init(&new->mutex,
+                 0 /* shared between threads */,
+                 1 /* Only 1 use at a time */) != 0)
+    {
+        fputs("Unable to create semaphore\n", stderr);
+        exit(1);
+    }
     if (sem_init(&new->items_available,
                  0 /* shared between threads */,
-                 0 /* Only 1 use at a time */) != 0)
+                 0 /* Start at 0 items*/) != 0)
     {
         fputs("Unable to create semaphore\n", stderr);
         exit(1);
     }
     if (sem_init(&new->space_available,
                  0 /* shared between threads */,
-                 MAX_QUEUE_CAPACITY /* Only 1 use at a time */) != 0)
+                 MAX_QUEUE_CAPACITY /* Start at max space */) != 0)
     {
         fputs("Unable to create semaphore\n", stderr);
         exit(1);
@@ -41,7 +48,7 @@ void mt_cirque_display(mt_cirque *q)
             printf("-> ");
         }
     }
-    puts("<- tail\n");
+    puts("<- tail");
 }
 
 int mt_cirque_has_items_available(mt_cirque *q)
@@ -57,6 +64,7 @@ void mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
            q->name, caller_name);
     fflush(stdout);
     sem_wait(&q->space_available);
+    sem_wait(&q->mutex);
     if (q->tail == UNINITIALIZED)
     {
         // Queue was previously empty,
@@ -75,6 +83,7 @@ void mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
     q->count++;
     printf("in %s: acquiring items_available for %s (end push)\n",
            q->name, caller_name);
+    sem_post(&q->mutex);
     sem_post(&q->items_available);
     return;
 }
@@ -84,7 +93,9 @@ char *mt_cirque_pop(mt_cirque *q, char *caller_name)
     char *popped;
     printf("in %s: acquiring items_available for %s (start pop)\n",
            q->name, caller_name);
+    // mt_cirque_display(q);
     sem_wait(&q->items_available);
+    sem_wait(&q->mutex);
     if (q->tail == UNINITIALIZED)
     {
         // Failure, because we can't pop
@@ -115,6 +126,7 @@ char *mt_cirque_pop(mt_cirque *q, char *caller_name)
         q->count--;
         printf("in %s: releasing space_available for %s (end pop)\n",
                q->name, caller_name);
+        sem_post(&q->mutex);
         sem_post(&q->space_available);
         return popped;
     }

@@ -21,6 +21,7 @@ typedef struct
     int count;
     sem_t items_available;
     sem_t space_available;
+    sem_t mutex;
 } mt_cirque;
 
 void mt_cirque_push(mt_cirque *q, char *str, char *caller_name);
