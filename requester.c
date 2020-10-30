@@ -8,7 +8,6 @@ void *requester_thread_func(void *param)
     char *filepath;
     char domain[MAX_DOMAIN_NAME_LENGTH];
     FILE *log;
-    int push_error;
 
     int short_tid = args->tid % 1000;
     char name[255];

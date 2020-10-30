@@ -23,7 +23,7 @@ typedef struct
     sem_t space_available;
 } mt_cirque;
 
-int mt_cirque_push(mt_cirque *q, char *str, char *caller_name);
+void mt_cirque_push(mt_cirque *q, char *str, char *caller_name);
 char *mt_cirque_pop(mt_cirque *q, char *caller_name);
 int mt_cirque_has_items_available(mt_cirque *q);
 void mt_cirque_display(mt_cirque *q);
