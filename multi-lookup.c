@@ -15,6 +15,8 @@ int main(int argc, char *argv[])
     float sec_elapsed;
     gettimeofday(&t1, NULL);
 
+    int join_error;
+
     // TODO: write this to performance.txt
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
@@ -39,7 +41,7 @@ int main(int argc, char *argv[])
         ThreadInfo *req_tinfo = init_thread(
             file_arr, shared_buff, argv[3],
             &requester_thread_func, "requester");
-        printf("requester #%d\n", req_thread_index);
+        printf("Created thread: requester %ld\n", req_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = req_tinfo;
         all_thread_index++;
     }
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
         ThreadInfo *res_tinfo = init_thread(
             file_arr, shared_buff, argv[4],
             &resolver_thread_func, "resolver");
-        printf("resolver #%d\n", res_thread_index);
+        printf("Created thread: resolver %ld\n", res_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = res_tinfo;
         all_thread_index++;
     }
@@ -60,9 +62,10 @@ int main(int argc, char *argv[])
     for (int thread_index = 0;
          thread_index < all_thread_index; thread_index++)
     {
+        join_error = pthread_join(all_thread_infos[thread_index]->tid, NULL);
         printf("thread finished: %ld\n", all_thread_infos[thread_index]->tid % 1000);
-        pthread_join(all_thread_infos[thread_index]->tid, NULL);
-        // free(all_thread_infos[thread_index]);
+        printf("join error: %d", join_error);
+        free(all_thread_infos[thread_index]);
     }
 
     printf("Parent quitting\n");

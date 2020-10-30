@@ -18,10 +18,10 @@ void *requester_thread_func(void *param)
     while (mt_cirque_has_items_available(args->file_arr))
     {
         filepath = mt_cirque_pop(args->file_arr, name);
-        // printf("filepath len: %lu\n", strlen(filepath));
         // TODO: Why am I getting this weird 1 character filepath?
         if (strlen(filepath) == 1)
         {
+            printf("1 weird character filepath\n");
             break;
         }
         // Open the file from the array
@@ -32,7 +32,7 @@ void *requester_thread_func(void *param)
         {
             // Remove any newlines that may or may not exist
             domain[strcspn(domain, "\r\n")] = 0; // (MT-safe)
-            printf("requesting %s\n", domain);
+            printf("in %s: requesting %s\n", name, domain);
 
             // Add each as an entry into the shared buffer
             mt_cirque_push(args->shared_buff, domain, name);
