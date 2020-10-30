@@ -57,6 +57,6 @@ void *requester_thread_func(void *param)
     }
     /* Send a "poison pill" through the shared_buff */
     mt_cirque_push(args->shared_buff, "NULL", name);
-    printf("in requester: quitting\n");
+    printf("in %s: quitting\n", name);
     return 0;
 }

@@ -61,7 +61,6 @@ int main(int argc, char *argv[])
          thread_index < all_thread_index; thread_index++)
     {
         printf("thread finished: %ld\n", all_thread_infos[thread_index]->tid % 1000);
-        fflush(stdout);
         pthread_join(all_thread_infos[thread_index]->tid, NULL);
         // free(all_thread_infos[thread_index]);
     }
@@ -98,7 +97,6 @@ ThreadInfo *init_thread(mt_cirque *file_arr,
             t_info) != 0)
     {
         fprintf(stderr, "Unable to create %s thread\n", caller_name);
-        fflush(stderr);
         // free(t_info);
         exit(1);
     }
