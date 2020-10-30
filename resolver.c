@@ -3,17 +3,21 @@
 
 void *resolver_thread_func(void *param)
 {
-    printf("in resolver\n");
 
     ThreadInfo *args = (ThreadInfo *)param;
     char *domain;
     char *ipstr = malloc(INET6_ADDRSTRLEN);
     char *result_line = malloc(INET6_ADDRSTRLEN + MAX_DOMAIN_NAME_LENGTH + 4);
 
-    // fopen a log file for our results
-    FILE *fp = try_fopen(args->log_path, "w", "resolver"); // MT-safe
+    int short_tid = args->tid % 1000;
+    char name[255];
+    sprintf(name, "resolver %d", short_tid);
+    printf("in %s\n", name);
 
-    while ((domain = mt_cirque_pop(args->shared_buff, "resolver")))
+    // fopen a log file for our results
+    FILE *fp = try_fopen(args->log_path, "w", name); // MT-safe
+
+    while ((domain = mt_cirque_pop(args->shared_buff, name)))
     {
         if (strcmp(domain, "NULL") == 0)
         {
@@ -31,7 +35,7 @@ void *resolver_thread_func(void *param)
     }
 
     fclose(fp);
-    puts("in resolver: Reached shared buffer end");
+    printf("in %s: Reached shared buffer end\n", name);
     fflush(stdout);
     free(ipstr);
     free(result_line);
