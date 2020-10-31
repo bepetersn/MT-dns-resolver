@@ -15,22 +15,21 @@ int main(int argc, char *argv[])
     float sec_elapsed;
     gettimeofday(&t1, NULL);
 
-    int join_error;
-
     // TODO: write this to performance.txt
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
 
     /* Create shared resources */
-    mt_cirque *file_arr = make_mt_cirque("file arr");
-    mt_cirque *shared_buff = make_mt_cirque("shared buff");
+    queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1);
+    queue *shared_buff = make_queue("shared buff", ARRAY_SIZE, 1);
     for (int arg_index = 5; arg_index < argc; arg_index++)
     {
         printf("queuing %s\n", argv[arg_index]);
-        mt_cirque_push(file_arr, argv[arg_index], "main");
+        queue_push(file_arr, argv[arg_index], "main");
     }
 
     /* Create threads */
+    ////////////////////////////////////
     int all_thread_index = 0;
     ThreadInfo *all_thread_infos[MAX_REQUESTOR_THREADS + MAX_RESOLVER_THREADS];
 
@@ -57,16 +56,18 @@ int main(int argc, char *argv[])
         all_thread_infos[all_thread_index] = res_tinfo;
         all_thread_index++;
     }
+    /////////////////////////////////////
 
     /* Wait and clean up */
     for (int thread_index = 0;
          thread_index < all_thread_index; thread_index++)
     {
-        join_error = pthread_join(all_thread_infos[thread_index]->tid, NULL);
+        pthread_join(all_thread_infos[thread_index]->tid, NULL);
         printf("thread finished: %ld\n", all_thread_infos[thread_index]->tid % 1000);
-        printf("join error: %d", join_error);
         free(all_thread_infos[thread_index]);
     }
+    destroy_queue(shared_buff);
+    destroy_queue(file_arr);
 
     printf("Parent quitting\n");
 
@@ -78,8 +79,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-ThreadInfo *init_thread(mt_cirque *file_arr,
-                        mt_cirque *shared_buff,
+ThreadInfo *init_thread(queue *file_arr,
+                        queue *shared_buff,
                         char *log_path,
                         thread_func_p thread_func_p,
                         char *caller_name)

@@ -1,42 +1,57 @@
 
 #include "mt-cirque.h"
 
-mt_cirque *make_mt_cirque(char *name)
+queue *make_queue(char *name, int size, int mt_safe)
 {
-    mt_cirque *new = malloc(sizeof(mt_cirque));
+    queue *new = malloc(sizeof(queue));
     new->name = name;
+    new->is_mt_safe = mt_safe;
     new->head = 0;
     new->count = 0;
-    // NOTE: tail is set to NULL when there
-    // are no elements in the queue
-    new->tail = UNINITIALIZED;
+    new->tail = 0;
+    new->data = malloc(size * sizeof(*new->data));
+    /* new->data is a pointer to first (which is a) string */
 
-    if (sem_init(&new->mutex,
-                 0 /* shared between threads */,
-                 1 /* Only 1 use at a time */) != 0)
+    if (mt_safe)
     {
-        fputs("Unable to create semaphore\n", stderr);
-        exit(1);
+        if (sem_init(&new->mutex,
+                     0 /* shared between threads */,
+                     1 /* Only 1 use at a time */) != 0)
+        {
+            fputs("Unable to create semaphore\n", stderr);
+            exit(1);
+        }
+        if (sem_init(&new->items_available,
+                     0 /* shared between threads */,
+                     0 /* Start at 0 items*/) != 0)
+        {
+            fputs("Unable to create semaphore\n", stderr);
+            exit(1);
+        }
+        if (sem_init(&new->space_available,
+                     0 /* shared between threads */,
+                     size /* Start at max space */) != 0)
+        {
+            fputs("Unable to create semaphore\n", stderr);
+            exit(1);
+        }
     }
-    if (sem_init(&new->items_available,
-                 0 /* shared between threads */,
-                 0 /* Start at 0 items*/) != 0)
-    {
-        fputs("Unable to create semaphore\n", stderr);
-        exit(1);
-    }
-    if (sem_init(&new->space_available,
-                 0 /* shared between threads */,
-                 MAX_QUEUE_CAPACITY /* Start at max space */) != 0)
-    {
-        fputs("Unable to create semaphore\n", stderr);
-        exit(1);
-    }
-
     return new;
 }
 
-void mt_cirque_display(mt_cirque *q)
+void destroy_queue(queue *q)
+{
+    if (q->is_mt_safe)
+    {
+        sem_destroy(&q->items_available);
+        sem_destroy(&q->space_available);
+        sem_destroy(&q->mutex);
+    }
+    free(q->data);
+    free(q);
+}
+
+void queue_display(queue *q)
 {
     printf("head -> ");
     int count = q->head + q->count;
@@ -51,83 +66,64 @@ void mt_cirque_display(mt_cirque *q)
     puts("<- tail");
 }
 
-int mt_cirque_has_items_available(mt_cirque *q)
+int queue_has_items_available(queue *q)
 {
     int result;
-    sem_getvalue(&q->items_available, &result);
+    if (q->is_mt_safe)
+        sem_getvalue(&q->items_available, &result);
+    else
+        result = q->count;
     return result;
 }
 
-void mt_cirque_push(mt_cirque *q, char *str, char *caller_name)
+void queue_push(queue *q, char *str, char *caller_name)
 {
-    printf("in %s: acquiring space_available for %s (start push)\n",
-           q->name, caller_name);
-    fflush(stdout);
-    sem_wait(&q->space_available);
-    sem_wait(&q->mutex);
-    if (q->tail == UNINITIALIZED)
+    if (q->is_mt_safe)
     {
-        // Queue was previously empty,
-        // so we will push at the head position
-        q->tail = q->head;
-    }
-    else
-    {
-        // Queue was not previously empty,
-        // so the queue grows from its tail;
-        // the space created is where we push
-        q->tail = (q->tail + 1) % MAX_QUEUE_CAPACITY;
+        printf("in %s: acquiring space_available for %s (start push)\n",
+               q->name, caller_name);
+        fflush(stdout); // necessary for some reason
+        sem_wait(&q->space_available);
+        sem_wait(&q->mutex);
     }
 
+    // the queue grows from its tail
     strcpy(q->data[q->tail], str);
+    q->tail++;
     q->count++;
-    printf("in %s: acquiring items_available for %s (end push)\n",
-           q->name, caller_name);
-    sem_post(&q->mutex);
-    sem_post(&q->items_available);
+    if (q->is_mt_safe)
+    {
+        printf("in %s: acquiring items_available for %s (end push)\n",
+               q->name, caller_name);
+        sem_post(&q->mutex);
+        sem_post(&q->items_available);
+    }
     return;
 }
 
-char *mt_cirque_pop(mt_cirque *q, char *caller_name)
+char *queue_pop(queue *q, char *caller_name)
 {
-    char *popped;
-    printf("in %s: acquiring items_available for %s (start pop)\n",
-           q->name, caller_name);
-    // mt_cirque_display(q);
-    sem_wait(&q->items_available);
-    sem_wait(&q->mutex);
-    if (q->tail == UNINITIALIZED)
+    if (q->is_mt_safe)
     {
-        // Failure, because we can't pop
-        // from an empty queue
-        return NULL;
+        printf("in %s: acquiring items_available for %s (start pop)\n",
+               q->name, caller_name);
+        sem_wait(&q->items_available);
+        sem_wait(&q->mutex);
     }
-    else
+
+    char *popped = strdup(q->data[q->head]);
+    // We pop from the head of the queue;
+    // This has the desirable property that we could in theory
+    // pop and push independently from the different
+    // sides
+    q->head++;
+    q->count--;
+    if (q->is_mt_safe)
     {
-        popped = strdup(q->data[q->head]);
-        if (q->head == q->tail)
-        {
-            // Uninitalize the tail
-            // to put the queue in a state
-            // of being empty, the inverse
-            // of the push functionality above
-            q->tail = UNINITIALIZED;
-        }
-        else
-        {
-            // We pop from the head of the queue;
-            // This has the desirable property that we can
-            // pop and push independently from the different
-            // sides AND we don't have to reinitialize or
-            // grow the queue to accommodate more than its
-            // size elements over time
-            q->head = (q->head + 1) % MAX_QUEUE_CAPACITY;
-        }
-        q->count--;
         printf("in %s: releasing space_available for %s (end pop)\n",
                q->name, caller_name);
         sem_post(&q->mutex);
         sem_post(&q->space_available);
-        return popped;
     }
+    return popped;
 }

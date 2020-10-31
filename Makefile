@@ -1,7 +1,7 @@
 # Makefile v1 for CSCI3753-F20 PA3
 
 CC = gcc
-CFLAGS = -Wextra -Wall -g
+CFLAGS = -Wextra -Wall -g -fsanitize=address
 INCLUDES = 
 LFLAGS = 
 LIBS = -lpthread

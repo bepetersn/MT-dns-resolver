@@ -8,6 +8,7 @@
 #include "util.h"
 #include "mt-cirque.h"
 
+#define ARRAY_SIZE 20
 #define MAX_INPUT_FILES 10      // TODO: Enforce
 #define MAX_REQUESTOR_THREADS 5 // TODO: Enforce
 #define MAX_RESOLVER_THREADS 5  // TOOD: Enforce
@@ -16,8 +17,8 @@
 typedef struct
 {
    pthread_t tid;
-   mt_cirque *file_arr;
-   mt_cirque *shared_buff;
+   queue *file_arr;
+   queue *shared_buff;
    char *log_path;
 } ThreadInfo;
 
@@ -25,8 +26,8 @@ typedef struct
    valid for use as the 3rd parameter to pthread_create */
 typedef void *(*thread_func_p)(void *);
 
-ThreadInfo *init_thread(mt_cirque *file_arr,
-                        mt_cirque *shared_buff,
+ThreadInfo *init_thread(queue *file_arr,
+                        queue *shared_buff,
                         char *log_path,
                         thread_func_p thread_func_p,
                         char *caller_name);

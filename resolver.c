@@ -17,7 +17,7 @@ void *resolver_thread_func(void *param)
     // fopen a log file for our results
     FILE *fp = try_fopen(args->log_path, "w", name); // MT-safe
 
-    while ((domain = mt_cirque_pop(args->shared_buff, name)))
+    while ((domain = queue_pop(args->shared_buff, name)))
     {
         if (strcmp(domain, "NULL") == 0)
         {

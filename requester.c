@@ -15,9 +15,9 @@ void *requester_thread_func(void *param)
     printf("in %s\n", name);
 
     // While files_arr is not empty, take from files_arr
-    while (mt_cirque_has_items_available(args->file_arr))
+    while (queue_has_items_available(args->file_arr))
     {
-        filepath = mt_cirque_pop(args->file_arr, name);
+        filepath = queue_pop(args->file_arr, name);
         // TODO: Why am I getting this weird 1 character filepath?
         if (strlen(filepath) == 1)
         {
@@ -35,7 +35,7 @@ void *requester_thread_func(void *param)
             printf("in %s: requesting %s\n", name, domain);
 
             // Add each as an entry into the shared buffer
-            mt_cirque_push(args->shared_buff, domain, name);
+            queue_push(args->shared_buff, domain, name);
 
             // Write to our logfile
             // TODO: Do all of our writing in one go by dynamically allocating memory;
@@ -44,10 +44,11 @@ void *requester_thread_func(void *param)
             fprintf(log, "%s\n", domain);
             fclose(log);
         }
-        fclose(fp); // finished one file
+        fclose(fp);     // finished one file
+        free(filepath); /* Came from strdup */
     }
     /* Send a "poison pill" through the shared_buff */
-    mt_cirque_push(args->shared_buff, "NULL", name);
+    queue_push(args->shared_buff, "NULL", name);
     printf("in %s: quitting\n", name);
     return 0;
 }
