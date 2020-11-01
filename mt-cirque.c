@@ -85,8 +85,8 @@ void _queue_expand_if_needed(queue *q)
 {
     void *new_data;
     /* Check if needs to grow */
-    printf("%d, %d\n", q->head + 1 + 1, q->capacity);
-    if ((q->head + 1 + 1) >= q->capacity)
+    printf("%d, %d\n", q->count + 1, q->capacity);
+    if ((q->count + 1) >= q->capacity)
     {
         puts("growing");
         q->capacity *= 2;
@@ -136,10 +136,7 @@ void queue_push(queue *q, char *str, char *caller_name)
     // the queue grows from its tail
     strcpy(q->data[q->tail], str);
     q->tail++;
-    printf("\n\ncount: %d", q->count);
     q->count++;
-    puts("incr count");
-    printf("count: %d\n\n", q->count);
 
     if (q->is_mt_safe)
     {
@@ -160,6 +157,11 @@ char *queue_pop(queue *q, char *caller_name)
         sem_wait(&q->items_available);
         sem_wait(&q->mutex);
     }
+    if (q->tail == q->head)
+    {
+        // We can't pop from an empty queue
+        return NULL;
+    }
 
     char *popped = strdup(q->data[q->head]);
     // We pop from the head of the queue;
@@ -169,6 +171,7 @@ char *queue_pop(queue *q, char *caller_name)
     q->head++;
     q->count--;
     q->bytes_written -= 1025;
+
     if (q->is_mt_safe)
     {
         printf("in %s: signaling space_available for %s (end pop)\n",
