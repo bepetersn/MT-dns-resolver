@@ -19,7 +19,9 @@ typedef struct
    pthread_t tid;
    queue *file_arr;
    queue *shared_buff;
+   queue *local_buff;
    char *log_path;
+   sem_t log_lock;
    int res_req_ratio;
 } ThreadInfo;
 
@@ -29,6 +31,7 @@ typedef void *(*thread_func_p)(void *);
 
 ThreadInfo *init_thread(queue *file_arr,
                         queue *shared_buff,
+                        sem_t log_lock,
                         char *log_path,
                         thread_func_p thread_func_p,
                         int res_req_ratio);

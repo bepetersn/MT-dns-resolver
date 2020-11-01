@@ -29,7 +29,6 @@ void *requester_thread_func(void *param)
         }
         // Open the file from the array
         FILE *fp = try_fopen(filepath, "r", name);
-
         // Read lines from the file repeatedly (MT-safe)
         while ((fgets(domain, MAX_DOMAIN_NAME_LENGTH, fp)))
         {
@@ -39,23 +38,25 @@ void *requester_thread_func(void *param)
 
             // Add each as an entry into the shared buffer
             queue_push(args->shared_buff, domain, name);
-
-            // Write to our logfile
-            // TODO: Do all of our writing in one go by dynamically allocating memory;
-            //       This is too annoying to do right now
-            log = try_fopen(args->log_path, "w", name);
-            fprintf(log, "%s\n", domain);
-            fclose(log);
+            // Log what we're doing through this other buffer too
+            queue_push(args->local_buff, domain, name);
         }
-        fclose(fp); // finished one file
         free(filepath);
+        fclose(fp); // finished one file
     }
+
+    // Write to our logfile
+    sem_wait(&args->log_lock);
+    log = try_fopen(args->log_path, "a", name);
+    while (queue_pop(args->local_buff, domain, name))
+        fprintf(log, "%s\n", domain);
+    fclose(log);
+    sem_post(&args->log_lock);
+
     /* Send a "poison pill" through the shared_buff */
     for (int listener_num = 0;
          listener_num < args->res_req_ratio; listener_num++)
-    {
-        queue_push(args->shared_buff, "NULL", name);
-    }
+        queue_push(args->shared_buff, "NULL", name); // TODO: Don't send "NULL" -- send NULL
 
     printf("in %s: quitting\n", name);
     return 0;

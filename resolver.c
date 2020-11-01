@@ -3,7 +3,6 @@
 
 void *resolver_thread_func(void *param)
 {
-
     ThreadInfo *args = (ThreadInfo *)param;
     char *domain = malloc(MAX_DOMAIN_NAME_LENGTH);
     char *ipstr = malloc(INET6_ADDRSTRLEN);
@@ -16,9 +15,6 @@ void *resolver_thread_func(void *param)
     filename[strlen(filename) - 2] = '\0'; // remove ".c"
     sprintf(name, "%s %d", filename, short_tid);
     printf("in %s\n", name);
-
-    // fopen a log file for our results
-    FILE *fp = try_fopen(args->log_path, "w", name); // MT-safe
 
     while ((queue_pop(args->shared_buff, domain, name)))
     {
@@ -34,12 +30,20 @@ void *resolver_thread_func(void *param)
             exit(1);
         }
         printf("in %s, resolved: %s", name, result_line);
-        fputs(result_line, fp);
+        queue_push(args->local_buff, result_line, name);
     }
 
-    fclose(fp);
+    // fopen a log file for our results
+    sem_wait(&args->log_lock);
+    FILE *fp = try_fopen(args->log_path, "a", name); // MT-safe
+    while (queue_pop(args->local_buff, domain, name))
+        fputs(domain, fp);
+    fclose(fp); // MT-safe
+    sem_post(&args->log_lock);
+
     printf("in %s: Reached shared buffer end\n", name);
-    fflush(stdout);
+    fflush(stdout); // MT-safe
+
     free(ipstr);
     free(result_line);
     free(domain);

@@ -26,13 +26,27 @@ int main(int argc, char *argv[])
         res_req_ratio++;
 
     /* Create shared resources */
+    ///////////////////////////////////////////////
     queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1);
     queue *shared_buff = make_queue("shared buff", ARRAY_SIZE, 1);
+    sem_t requester_log_lock, resolver_log_lock;
+
+    /* Only one use of log locks at a time, in threads */
+    sem_init(&requester_log_lock, 0, 1);
+    sem_init(&resolver_log_lock, 0, 1);
+
+    /* Empty the log files */
+    FILE *fp = try_fopen(argv[3], "w", "main");
+    fclose(fp);
+    fp = try_fopen(argv[4], "w", "main");
+    fclose(fp);
+
     for (int arg_index = 5; arg_index < argc; arg_index++)
     {
         printf("queuing %s\n", argv[arg_index]);
         queue_push(file_arr, argv[arg_index], "main");
     }
+    ///////////////////////////////////////////////
 
     /* Create threads */
     ////////////////////////////////////
@@ -44,8 +58,8 @@ int main(int argc, char *argv[])
          req_thread_index <= atoi(argv[1]); req_thread_index++)
     {
         ThreadInfo *req_tinfo = init_thread(
-            file_arr, shared_buff, argv[3],
-            &requester_thread_func, res_req_ratio);
+            file_arr, shared_buff, requester_log_lock,
+            argv[3], &requester_thread_func, res_req_ratio);
         printf("Created thread: requester %ld\n", req_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = req_tinfo;
         all_thread_index++;
@@ -56,8 +70,8 @@ int main(int argc, char *argv[])
          res_thread_index <= atoi(argv[2]); res_thread_index++)
     {
         ThreadInfo *res_tinfo = init_thread(
-            file_arr, shared_buff, argv[4],
-            &resolver_thread_func, 0);
+            file_arr, shared_buff, resolver_log_lock,
+            argv[4], &resolver_thread_func, 0);
         printf("Created thread: resolver %ld\n", res_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = res_tinfo;
         all_thread_index++;
@@ -70,6 +84,7 @@ int main(int argc, char *argv[])
     {
         pthread_join(all_thread_infos[thread_index]->tid, NULL);
         printf("thread finished: %ld\n", all_thread_infos[thread_index]->tid % 1000);
+        destroy_queue(all_thread_infos[thread_index]->local_buff);
         free(all_thread_infos[thread_index]);
     }
     destroy_queue(shared_buff);
@@ -87,6 +102,7 @@ int main(int argc, char *argv[])
 
 ThreadInfo *init_thread(queue *file_arr,
                         queue *shared_buff,
+                        sem_t log_lock,
                         char *log_path,
                         thread_func_p thread_func_p,
                         int res_req_ratio)
@@ -98,6 +114,8 @@ ThreadInfo *init_thread(queue *file_arr,
 
     t_info->file_arr = file_arr;
     t_info->shared_buff = shared_buff;
+    t_info->local_buff = make_queue("local buff n", 0, 0); /* Unbounded and not MT-safe */
+    t_info->log_lock = log_lock;
     t_info->log_path = log_path;
     t_info->res_req_ratio = res_req_ratio;
 

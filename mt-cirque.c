@@ -85,10 +85,10 @@ void _queue_expand_if_needed(queue *q)
 {
     void *new_data;
     /* Check if needs to grow */
-    printf("queue bounds: %d, %d\n", q->count + q->head + 1, q->capacity);
+    //printf("queue bounds: %d, %d\n", q->count + q->head + 1, q->capacity);
     if ((q->count + q->head + 1) == q->capacity)
     {
-        puts("growing");
+        // puts("growing");
         q->capacity *= 2;
         new_data = realloc(q->data, sizeof(*q->data) * q->capacity);
         if (new_data == q->data)
