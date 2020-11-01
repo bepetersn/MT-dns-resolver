@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     /* Create threads */
     ////////////////////////////////////
     int all_thread_index = 0;
-    ThreadInfo *all_thread_infos[MAX_REQUESTOR_THREADS + MAX_RESOLVER_THREADS];
+    ThreadInfo *all_thread_infos[MAX_REQUESTOR_THREADS + MAX_RESOLVER_THREADS + 10];
 
     /* Requesters */
     for (int req_thread_index = 1;

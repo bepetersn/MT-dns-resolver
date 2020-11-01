@@ -9,13 +9,10 @@ queue *make_queue(char *name, int size, int mt_safe)
     new->head = 0;
     new->tail = 0;
     new->count = 0;
-    new->bytes_written = 0;
-    new->max_bytes = size * sizeof(*new->data);
     new->capacity = size;
-    new->data = malloc(new->max_bytes);
+    new->data = malloc(size * sizeof(*new->data));
     /* new->data is a pointer to first (which is a) string */
     new->is_mt_safe = mt_safe;
-    new->is_bounded = mt_safe; /* Optimization; could change */
 
     if (mt_safe)
     {
@@ -85,8 +82,8 @@ void _queue_expand_if_needed(queue *q)
 {
     void *new_data;
     /* Check if needs to grow */
-    printf("%d, %d\n", q->count + 1, q->capacity);
-    if ((q->count + 1) >= q->capacity)
+    printf("queue bounds: %d, %d\n", q->count + q->head + 1, q->capacity);
+    if ((q->count + q->head + 1) == q->capacity)
     {
         puts("growing");
         q->capacity *= 2;
@@ -99,7 +96,6 @@ void _queue_expand_if_needed(queue *q)
         else
         {
             q->data = new_data;
-            q->max_bytes *= 2;
         }
     }
 }
@@ -111,22 +107,10 @@ void queue_push(queue *q, char *str, char *caller_name)
         printf("in %s: trying to acquire space_available for %s (start push)\n",
                q->name, caller_name);
         fflush(stdout); // necessary for some reason
-        int val;
-        sem_getvalue(&q->space_available, &val);
-        printf("in %s: space available: %d for %s (start push)\n",
-               q->name, val, caller_name);
-        fflush(stdout);                // necessary for some reason
-        sem_wait(&q->space_available); // TODO: NOT blocking for some reason?
+        sem_wait(&q->space_available);
         sem_wait(&q->mutex);
         printf("in %s: Now acquired space_available for %s (start push)\n",
                q->name, caller_name);
-        sem_getvalue(&q->space_available, &val);
-        printf("in %s: space available: %d for %s (start push)\n",
-               q->name, val, caller_name);
-        printf("in %s: going to push '%s'\n", q->name, str);
-        q->bytes_written += 1025;
-        printf("in %s: bytes written: %d\n", q->name, q->bytes_written);
-        printf("in %s: max bytes: %d\n", q->name, q->max_bytes);
         fflush(stdout); // necessary for some reason
     }
 
@@ -170,7 +154,6 @@ char *queue_pop(queue *q, char *caller_name)
     // sides
     q->head++;
     q->count--;
-    q->bytes_written -= 1025;
 
     if (q->is_mt_safe)
     {
