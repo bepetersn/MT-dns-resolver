@@ -1,3 +1,8 @@
 *.o
 multi-lookup
 logs/*
+*.symvers
+*.a
+*.a.*
+*.order
+*.txt
