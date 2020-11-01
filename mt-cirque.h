@@ -30,6 +30,6 @@ typedef struct
 queue *make_queue(char *name, int size, int mt_safe);
 void destroy_queue(queue *q);
 void queue_push(queue *q, char *str, char *caller_name);
-char *queue_pop(queue *q, char *caller_name);
+char *queue_pop(queue *q, char *result, char *caller_name);
 int queue_has_items_available(queue *q);
 void queue_display(queue *q);

@@ -132,8 +132,9 @@ void queue_push(queue *q, char *str, char *caller_name)
     return;
 }
 
-char *queue_pop(queue *q, char *caller_name)
+char *queue_pop(queue *q, char *result, char *caller_name)
 {
+    // int size;
     if (q->is_mt_safe)
     {
         printf("in %s: acquiring items_available for %s (start pop)\n",
@@ -147,7 +148,8 @@ char *queue_pop(queue *q, char *caller_name)
         return NULL;
     }
 
-    char *popped = strdup(q->data[q->head]);
+    strcpy(result, q->data[q->head]);
+
     // We pop from the head of the queue;
     // This has the desirable property that we could in theory
     // pop and push independently from the different
@@ -162,5 +164,5 @@ char *queue_pop(queue *q, char *caller_name)
         sem_post(&q->mutex);
         sem_post(&q->space_available);
     }
-    return popped;
+    return result;
 }

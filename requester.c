@@ -5,19 +5,22 @@ void *requester_thread_func(void *param)
 {
     ThreadInfo *args = (ThreadInfo *)param;
 
-    char *filepath;
+    char *filepath = malloc(255);
     char domain[MAX_DOMAIN_NAME_LENGTH];
     FILE *log;
 
+    // find name of this thread
     int short_tid = args->tid % 1000;
+    char filename[20] = __FILE__;
     char name[255];
-    sprintf(name, "requester %d", short_tid);
+    filename[strlen(filename) - 2] = '\0'; // remove ".c"
+    sprintf(name, "%s %d", filename, short_tid);
     printf("in %s\n", name);
 
-    // While files_arr is not empty, take from files_arr
+    // While there is at least one file to process
     while (queue_has_items_available(args->file_arr))
     {
-        filepath = queue_pop(args->file_arr, name);
+        queue_pop(args->file_arr, filepath, name);
         // TODO: Why am I getting this weird 1 character filepath?
         if (strlen(filepath) == 1)
         {
@@ -44,11 +47,16 @@ void *requester_thread_func(void *param)
             fprintf(log, "%s\n", domain);
             fclose(log);
         }
-        fclose(fp);     // finished one file
-        free(filepath); /* Came from strdup */
+        fclose(fp); // finished one file
+        free(filepath);
     }
     /* Send a "poison pill" through the shared_buff */
-    queue_push(args->shared_buff, "NULL", name);
+    for (int listener_num = 0;
+         listener_num < args->res_req_ratio; listener_num++)
+    {
+        queue_push(args->shared_buff, "NULL", name);
+    }
+
     printf("in %s: quitting\n", name);
     return 0;
 }

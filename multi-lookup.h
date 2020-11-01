@@ -20,6 +20,7 @@ typedef struct
    queue *file_arr;
    queue *shared_buff;
    char *log_path;
+   int res_req_ratio;
 } ThreadInfo;
 
 /* Declare a type which is a pointer to a function 
@@ -30,6 +31,6 @@ ThreadInfo *init_thread(queue *file_arr,
                         queue *shared_buff,
                         char *log_path,
                         thread_func_p thread_func_p,
-                        char *caller_name);
+                        int res_req_ratio);
 
 #endif

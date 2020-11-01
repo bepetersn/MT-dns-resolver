@@ -19,6 +19,12 @@ int main(int argc, char *argv[])
     printf("# requesters for this run: %s\n", argv[1]);
     printf("# resolvers for this run: %s\n", argv[2]);
 
+    // Ratio of resolvers to requesters, 1 <= rrr <= 5
+    int res_req_ratio = (atoi(argv[2]) / atoi(argv[1]));
+    float f_rrr = (((float)atoi(argv[2])) / ((float)atoi(argv[1])));
+    if ((f_rrr - (float)res_req_ratio) > 0)
+        res_req_ratio++;
+
     /* Create shared resources */
     queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1);
     queue *shared_buff = make_queue("shared buff", ARRAY_SIZE, 1);
@@ -39,7 +45,7 @@ int main(int argc, char *argv[])
     {
         ThreadInfo *req_tinfo = init_thread(
             file_arr, shared_buff, argv[3],
-            &requester_thread_func, "requester");
+            &requester_thread_func, res_req_ratio);
         printf("Created thread: requester %ld\n", req_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = req_tinfo;
         all_thread_index++;
@@ -51,7 +57,7 @@ int main(int argc, char *argv[])
     {
         ThreadInfo *res_tinfo = init_thread(
             file_arr, shared_buff, argv[4],
-            &resolver_thread_func, "resolver");
+            &resolver_thread_func, 0);
         printf("Created thread: resolver %ld\n", res_tinfo->tid % 1000);
         all_thread_infos[all_thread_index] = res_tinfo;
         all_thread_index++;
@@ -83,7 +89,7 @@ ThreadInfo *init_thread(queue *file_arr,
                         queue *shared_buff,
                         char *log_path,
                         thread_func_p thread_func_p,
-                        char *caller_name)
+                        int res_req_ratio)
 {
 
     // create & serialize pthread_create args
@@ -93,6 +99,7 @@ ThreadInfo *init_thread(queue *file_arr,
     t_info->file_arr = file_arr;
     t_info->shared_buff = shared_buff;
     t_info->log_path = log_path;
+    t_info->res_req_ratio = res_req_ratio;
 
     // create a thread for parsing
     if (pthread_create(
@@ -100,8 +107,8 @@ ThreadInfo *init_thread(queue *file_arr,
             *thread_func_p,
             t_info) != 0)
     {
-        fprintf(stderr, "Unable to create %s thread\n", caller_name);
-        // free(t_info);
+        fprintf(stderr, "Unable to create thread\n");
+        free(t_info);
         exit(1);
     }
     t_info->tid = tid;
