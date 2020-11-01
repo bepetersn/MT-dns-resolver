@@ -8,8 +8,8 @@
    multi-threading safe circular 
    queue with a max capcity of 20 */
 
-#define MAX_STRING_LENGTH 1025 // characters in each string
-#define MAX_QUEUE_CAPACITY 20  // queue capacity
+#define MAX_STRING_LENGTH 1025    // characters in each string
+#define DEFAULT_QUEUE_CAPACITY 20 // queue capacity
 #define UNINITIALIZED -1000
 
 typedef struct

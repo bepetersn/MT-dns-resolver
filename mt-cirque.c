@@ -9,8 +9,11 @@ queue *make_queue(char *name, int size, int mt_safe)
     new->head = 0;
     new->tail = 0;
     new->count = 0;
-    new->capacity = size;
-    new->data = malloc(size * sizeof(*new->data));
+    if (size == 0)
+        new->capacity = DEFAULT_QUEUE_CAPACITY;
+    else
+        new->capacity = size;
+    new->data = malloc(new->capacity * sizeof(*new->data));
     /* new->data is a pointer to first (which is a) string */
     new->is_mt_safe = mt_safe;
 
