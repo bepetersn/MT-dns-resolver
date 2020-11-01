@@ -20,7 +20,11 @@ typedef struct
     int head;
     int tail;
     int count;
+    int capacity;
     int is_mt_safe;
+    int is_bounded;
+    int max_bytes;
+    int bytes_written;
     sem_t items_available;
     sem_t space_available;
     sem_t mutex;
