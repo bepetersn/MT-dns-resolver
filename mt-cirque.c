@@ -1,10 +1,14 @@
 
 #include "mt-cirque.h"
-#include "errno.h"
 
 queue *make_queue(char *name, int size, int mt_safe)
 {
     queue *new = malloc(sizeof(queue));
+    if (new == NULL)
+    {
+        fprintf(stderr, "Error in malloc");
+        exit(1);
+    }
     new->name = name;
     new->head = 0;
     new->tail = 0;
@@ -14,6 +18,11 @@ queue *make_queue(char *name, int size, int mt_safe)
     else
         new->capacity = size;
     new->data = malloc(new->capacity * sizeof(*new->data));
+    if (new->data == NULL)
+    {
+        fprintf(stderr, "Error in malloc");
+        exit(1);
+    }
     /* new->data is a pointer to first (which is a) string */
     new->is_mt_safe = mt_safe;
 
@@ -48,9 +57,21 @@ void destroy_queue(queue *q)
 {
     if (q->is_mt_safe)
     {
-        sem_destroy(&q->items_available);
-        sem_destroy(&q->space_available);
-        sem_destroy(&q->mutex);
+        int rv = sem_destroy(&q->items_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_destroy");
+        }
+        rv = sem_destroy(&q->space_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_destroy");
+        }
+        rv = sem_destroy(&q->mutex);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_destroy");
+        }
     }
     free(q->data);
     free(q);
@@ -74,8 +95,16 @@ void queue_display(queue *q)
 int queue_has_items_available(queue *q)
 {
     int result;
+    int rv;
     if (q->is_mt_safe)
-        sem_getvalue(&q->items_available, &result);
+    {
+        rv = sem_getvalue(&q->items_available, &result);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_getvalue");
+            exit(1);
+        }
+    }
     else
         result = q->count;
     return result;
@@ -91,30 +120,44 @@ void _queue_expand_if_needed(queue *q)
         // puts("growing");
         q->capacity *= 2;
         new_data = realloc(q->data, sizeof(*q->data) * q->capacity);
-        if (new_data == q->data)
-        {
-            puts("Failed to realloc");
-            exit(1);
-        }
-        else
-        {
-            q->data = new_data;
-        }
+        q->data = new_data;
     }
 }
 
 void queue_push(queue *q, char *str, char *caller_name)
 {
+    int rv;
+    UNUSED(caller_name);
+    printf("push %s (%s)\n", q->name, caller_name);
+
     if (q->is_mt_safe)
     {
         printf("in %s: trying to acquire space_available for %s (start push)\n",
                q->name, caller_name);
-        fflush(stdout); // necessary for some reason
-        sem_wait(&q->space_available);
-        sem_wait(&q->mutex);
+        rv = fflush(stdout); // necessary for some reason
+        if (rv == EOF)
+        {
+            fprintf(stderr, "Error in fflush");
+        }
+        rv = sem_wait(&q->space_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_wait");
+            exit(1);
+        }
+        rv = sem_wait(&q->mutex);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_wait");
+            exit(1);
+        }
         printf("in %s: Now acquired space_available for %s (start push)\n",
                q->name, caller_name);
-        fflush(stdout); // necessary for some reason
+        rv = fflush(stdout); // necessary for some reason
+        if (rv == EOF)
+        {
+            fprintf(stderr, "Error in fflush");
+        }
     }
 
     /* Make queue dynamically grow if needed*/
@@ -129,26 +172,43 @@ void queue_push(queue *q, char *str, char *caller_name)
     {
         printf("in %s: signaling items_available for %s (end push)\n",
                q->name, caller_name);
-        sem_post(&q->mutex);
-        sem_post(&q->items_available);
+        rv = sem_post(&q->mutex);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_post");
+            exit(1);
+        }
+        rv = sem_post(&q->items_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_post");
+            exit(1);
+        }
     }
-    return;
 }
 
 char *queue_pop(queue *q, char *result, char *caller_name)
 {
-    // int size;
+    int rv;
+    UNUSED(caller_name);
+    queue_display(q);
+    printf("pop %s (%s)\n", q->name, caller_name);
     if (q->is_mt_safe)
     {
         printf("in %s: acquiring items_available for %s (start pop)\n",
                q->name, caller_name);
-        sem_wait(&q->items_available);
-        sem_wait(&q->mutex);
-    }
-    if (q->tail == q->head)
-    {
-        // We can't pop from an empty queue
-        return NULL;
+        rv = sem_wait(&q->items_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_wait");
+            exit(1);
+        }
+        rv = sem_wait(&q->mutex);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_wait");
+            exit(1);
+        }
     }
 
     strcpy(result, q->data[q->head]);
@@ -164,8 +224,18 @@ char *queue_pop(queue *q, char *result, char *caller_name)
     {
         printf("in %s: signaling space_available for %s (end pop)\n",
                q->name, caller_name);
-        sem_post(&q->mutex);
-        sem_post(&q->space_available);
+        rv = sem_post(&q->mutex);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_post");
+            exit(1);
+        }
+        rv = sem_post(&q->space_available);
+        if (rv == -1)
+        {
+            fprintf(stderr, "Error in sem_post");
+            exit(1);
+        }
     }
     return result;
 }

@@ -40,5 +40,5 @@ int dnslookup(const char *hostname,
 			  int maxSize);
 
 FILE *try_fopen(char *filepath,
-				char *mode, char *caller_name);
+				char *mode, char *caller_name, int graceful);
 #endif
