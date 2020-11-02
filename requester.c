@@ -16,15 +16,19 @@ void *requester_thread_func(void *param)
     char filename[20] = __FILE__;
     char name[255];
     filename[strlen(filename) - 2] = '\0'; // remove ".c"
-    rv = sprintf(name, "%s %d", filename, short_tid);
+    rv = sprintf(name, "%s %x", filename, short_tid);
     if (rv < 0)
     {
         fprintf(stderr, "Error in sprintf");
     }
-    printf("in %s\n", name);
+    // printf("in %s\n", name);
 
     // While there is at least one file to process
-    while (queue_pop(args->file_arr, filepath, name))
+    // NOTE: This could create a race condition IF AND ONLY IF
+    // there could be more files added to file_arr after the
+    // start of the threads, but this is never true.
+    while (queue_has_items_available(args->file_arr) &&
+           queue_pop(args->file_arr, filepath, name))
     {
         // TODO: Why am I getting this weird 1 character filepath?
         if (strlen(filepath) == 1)
@@ -43,7 +47,7 @@ void *requester_thread_func(void *param)
         {
             // Remove any newlines that may or may not exist
             domain[strcspn(domain, "\r\n")] = 0; // (MT-safe)
-            printf("in %s: requesting %s\n", name, domain);
+            // printf("in %s: requesting %s\n", name, domain);
 
             // Add each as an entry into the shared buffer
             queue_push(args->shared_buff, domain, name);
@@ -58,13 +62,13 @@ void *requester_thread_func(void *param)
         }
     }
     free(filepath);
-    puts("Requester reached end of file_arr");
+    // puts("Requester reached end of file_arr");
 
     /* Send a "poison pill" through the shared_buff */
     for (int listener_num = 0;
          listener_num < args->res_req_ratio; listener_num++)
     {
-        puts("pushing poison pill");
+        // puts("pushing poison pill");
         queue_push(args->shared_buff, POISON_PILL, name);
     }
 
@@ -80,9 +84,9 @@ void *requester_thread_func(void *param)
     while (queue_pop(args->local_buff, domain, name))
         fprintf(log, "%s\n", domain);
 
-    fprintf(log, "Thread %lu serviced %d files.\n",
+    fprintf(log, "Thread %lx serviced %d files.\n",
             args->tid, num_files_serviced);
-    fprintf(args->perf_fp, "Thread %lu serviced %d files.\n",
+    fprintf(args->perf_fp, "Thread %lx serviced %d files.\n",
             args->tid, num_files_serviced);
     rv = fclose(log);
     if (rv == EOF)

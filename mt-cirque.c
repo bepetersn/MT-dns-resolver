@@ -128,17 +128,16 @@ void queue_push(queue *q, char *str, char *caller_name)
 {
     int rv;
     UNUSED(caller_name);
-    printf("push %s (%s)\n", q->name, caller_name);
 
     if (q->is_mt_safe)
     {
-        printf("in %s: trying to acquire space_available for %s (start push)\n",
-               q->name, caller_name);
-        rv = fflush(stdout); // necessary for some reason
-        if (rv == EOF)
-        {
-            fprintf(stderr, "Error in fflush");
-        }
+        // printf("in %s: trying to acquire space_available for %s (start push)\n",
+        //        q->name, caller_name);
+        // rv = fflush(stdout); // necessary for some reason
+        // if (rv == EOF)
+        // {
+        //     fprintf(stderr, "Error in fflush");
+        // }
         rv = sem_wait(&q->space_available);
         if (rv == -1)
         {
@@ -151,13 +150,17 @@ void queue_push(queue *q, char *str, char *caller_name)
             fprintf(stderr, "Error in sem_wait");
             exit(1);
         }
-        printf("in %s: Now acquired space_available for %s (start push)\n",
-               q->name, caller_name);
-        rv = fflush(stdout); // necessary for some reason
-        if (rv == EOF)
-        {
-            fprintf(stderr, "Error in fflush");
-        }
+        // printf("in %s: Now acquired space_available for %s (start push)\n",
+        //        q->name, caller_name);
+        // rv = fflush(stdout); // necessary for some reason
+        // if (rv == EOF)
+        // {
+        //     fprintf(stderr, "Error in fflush");
+        // }
+    }
+    else
+    {
+        // printf("in %s: about to pop for %s \n", q->name, caller_name);
     }
 
     /* Make queue dynamically grow if needed*/
@@ -170,8 +173,8 @@ void queue_push(queue *q, char *str, char *caller_name)
 
     if (q->is_mt_safe)
     {
-        printf("in %s: signaling items_available for %s (end push)\n",
-               q->name, caller_name);
+        // printf("in %s: signaling items_available for %s (end push)\n",
+        //        q->name, caller_name);
         rv = sem_post(&q->mutex);
         if (rv == -1)
         {
@@ -191,10 +194,10 @@ char *queue_pop(queue *q, char *result, char *caller_name)
 {
     int rv;
     UNUSED(caller_name);
-    queue_display(q);
-    printf("pop %s (%s)\n", q->name, caller_name);
     if (q->is_mt_safe)
     {
+        // printf("in %s: trying to acquire items_available for %s (start pop)\n",
+        //        q->name, caller_name);
         rv = sem_wait(&q->items_available);
         if (rv == -1)
         {
@@ -215,6 +218,9 @@ char *queue_pop(queue *q, char *result, char *caller_name)
             return NULL;
         }
     }
+    // printf("in %s: Now acquired items_available for %s\n",
+    //        q->name, caller_name);
+    // queue_display(q);
 
     strcpy(result, q->data[q->head]);
 
@@ -227,8 +233,8 @@ char *queue_pop(queue *q, char *result, char *caller_name)
 
     if (q->is_mt_safe)
     {
-        printf("in %s: signaling space_available for %s (end pop)\n",
-               q->name, caller_name);
+        // printf("in %s: signaling space_available for %s (end pop)\n",
+        //        q->name, caller_name);
         rv = sem_post(&q->mutex);
         if (rv == -1)
         {

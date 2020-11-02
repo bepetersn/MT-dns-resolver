@@ -61,8 +61,6 @@ int main(int argc, char *argv[])
     if ((f_rrr - (float)res_req_ratio) > 0)
         res_req_ratio++;
 
-    printf("res_req_ratio: %d\n", res_req_ratio);
-
     /* Create shared resources */
     ///////////////////////////////////////////////
     queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1);

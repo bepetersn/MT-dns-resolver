@@ -29,12 +29,12 @@ void *resolver_thread_func(void *param)
     char filename[20] = __FILE__;
     char name[255];
     filename[strlen(filename) - 2] = '\0'; // remove ".c"
-    rv = sprintf(name, "%s %d", filename, short_tid);
+    rv = sprintf(name, "%s %x", filename, short_tid);
     if (rv < 0)
     {
         fprintf(stderr, "Error in sprintf");
     }
-    printf("in %s\n", name);
+    // printf("in %s\n", name);
 
     while (queue_pop(args->shared_buff, domain, name))
     {
@@ -62,7 +62,7 @@ void *resolver_thread_func(void *param)
                 exit(1);
             }
         }
-        printf("in %s, resolved: %s", name, result_line);
+        // printf("in %s, resolved: %s", name, result_line);
         queue_push(args->local_buff, result_line, name);
     }
 
@@ -96,7 +96,7 @@ void *resolver_thread_func(void *param)
         exit(1);
     }
 
-    printf("in %s: Reached shared buffer end\n", name);
+    // printf("in %s: Reached shared buffer end\n", name);
     rv = fflush(stdout); // MT-safe
     if (rv == EOF)
     {
@@ -107,6 +107,6 @@ void *resolver_thread_func(void *param)
     free(ipstr);
     free(result_line);
     free(domain);
-    puts("reached end of thread");
+    // puts("reached end of thread");
     return 0;
 }
