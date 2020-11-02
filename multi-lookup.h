@@ -11,8 +11,10 @@
 #define ARRAY_SIZE 20
 #define MAX_INPUT_FILES 10      // TODO: Enforce
 #define MAX_REQUESTOR_THREADS 5 // TODO: Enforce
-#define MAX_RESOLVER_THREADS 5  // TOOD: Enforce
+#define MAX_RESOLVER_THREADS 10 // TOOD: Enforce
 #define MAX_DOMAIN_NAME_LENGTH 1025
+
+#define POISON_PILL "__END_INPUT__"
 
 typedef struct
 {
@@ -23,6 +25,7 @@ typedef struct
    char *log_path;
    sem_t log_lock;
    int res_req_ratio;
+   FILE *perf_fp;
 } ThreadInfo;
 
 /* Declare a type which is a pointer to a function 

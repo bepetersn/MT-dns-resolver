@@ -94,16 +94,23 @@ int dnslookup(const char *hostname, char *firstIPstr, int maxSize)
 	return UTIL_SUCCESS;
 }
 
-FILE *try_fopen(char *filepath, char *mode, char *caller_name)
+FILE *try_fopen(char *filepath, char *mode, char *caller_name, int graceful)
 {
 	FILE *fp = fopen(filepath, mode);
 	if (fp == NULL)
 	{
 		fprintf(stderr, "in %s: failed to open file: '%s'\n",
 				caller_name, filepath);
-		exit(1); // TODO: Use pthread_exit
+		if (!graceful)
+		{
+			exit(1); // TODO: Use pthread_exit
+		}
+		else
+		{
+			return NULL;
+		}
 	}
-	printf("in %s: opened file '%s' \n",
-		   caller_name, filepath);
+	// printf("in %s: opened file '%s' \n",
+	// 	   caller_name, filepath);
 	return fp;
 }
