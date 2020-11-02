@@ -41,9 +41,9 @@ void *requester_thread_func(void *param)
             // Log what we're doing through this other buffer too
             queue_push(args->local_buff, domain, name);
         }
-        free(filepath);
         fclose(fp); // finished one file
     }
+    free(filepath);
 
     // Write to our logfile
     sem_wait(&args->log_lock);
