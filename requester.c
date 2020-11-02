@@ -35,6 +35,10 @@ void *requester_thread_func(void *param)
             printf("1 weird character filepath\n");
             break;
         }
+        if (strcmp(filepath, POISON_PILL) == 0)
+        {
+            break;
+        }
         // Open the file from the array
         FILE *fp = try_fopen(filepath, "r", name, 1);
         if (fp == NULL)

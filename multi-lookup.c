@@ -103,6 +103,10 @@ int main(int argc, char *argv[])
         // printf("queuing %s\n", argv[arg_index]);
         queue_push(file_arr, argv[arg_index], "main");
     }
+    for (int index = 0; index < num_requesters; index++)
+    {
+        queue_push(file_arr, POISON_PILL, "main");
+    }
     ///////////////////////////////////////////////
 
     /* Create threads */
