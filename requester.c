@@ -27,8 +27,7 @@ void *requester_thread_func(void *param)
     // NOTE: This could create a race condition IF AND ONLY IF
     // there could be more files added to file_arr after the
     // start of the threads, but this is never true.
-    while (queue_has_items_available(args->file_arr) &&
-           queue_pop(args->file_arr, filepath, name))
+    while (queue_pop(args->file_arr, filepath, name))
     {
         // TODO: Why am I getting this weird 1 character filepath?
         if (strlen(filepath) == 1)

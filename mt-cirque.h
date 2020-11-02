@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <semaphore.h>
+#include <errno.h>
 
 /* prototypes and definitions for a
    multi-threading safe circular 
@@ -22,12 +23,13 @@ typedef struct
     int count;
     int capacity;
     int is_mt_safe;
+    int is_one_use_only;
     sem_t items_available;
     sem_t space_available;
     sem_t mutex;
 } queue;
 
-queue *make_queue(char *name, int size, int mt_safe);
+queue *make_queue(char *name, int size, int mt_safe, int is_one_use_only);
 void destroy_queue(queue *q);
 void queue_push(queue *q, char *str, char *caller_name);
 char *queue_pop(queue *q, char *result, char *caller_name);

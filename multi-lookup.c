@@ -63,8 +63,9 @@ int main(int argc, char *argv[])
 
     /* Create shared resources */
     ///////////////////////////////////////////////
-    queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1);
-    queue *shared_buff = make_queue("shared buff", MAX_INPUT_FILES, 1);
+
+    queue *file_arr = make_queue("file arr", ARRAY_SIZE, 1, 1);
+    queue *shared_buff = make_queue("shared buff", MAX_INPUT_FILES, 1, 0);
     sem_t requester_log_lock, resolver_log_lock;
 
     /* Only one use of log locks at a time, in threads */
@@ -194,7 +195,7 @@ ThreadInfo *init_thread(queue *file_arr,
 
     t_info->file_arr = file_arr;
     t_info->shared_buff = shared_buff;
-    t_info->local_buff = make_queue("local buff n", 0, 0); /* Unbounded and not MT-safe */
+    t_info->local_buff = make_queue("local buff n", 0, 0, 0); /* Unbounded, not MT-safe, many uses */
     t_info->log_lock = log_lock;
     t_info->log_path = log_path;
     t_info->res_req_ratio = res_req_ratio;

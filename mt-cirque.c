@@ -1,7 +1,7 @@
 
 #include "mt-cirque.h"
 
-queue *make_queue(char *name, int size, int mt_safe)
+queue *make_queue(char *name, int size, int mt_safe, int is_one_use_only)
 {
     queue *new = malloc(sizeof(queue));
     if (new == NULL)
@@ -17,14 +17,16 @@ queue *make_queue(char *name, int size, int mt_safe)
         new->capacity = DEFAULT_QUEUE_CAPACITY;
     else
         new->capacity = size;
+
+    /* new->data is a pointer to first (which is a) string */
     new->data = malloc(new->capacity * sizeof(*new->data));
     if (new->data == NULL)
     {
         fprintf(stderr, "Error in malloc");
         exit(1);
     }
-    /* new->data is a pointer to first (which is a) string */
     new->is_mt_safe = mt_safe;
+    new->is_one_use_only = is_one_use_only;
 
     if (mt_safe)
     {
@@ -198,11 +200,30 @@ char *queue_pop(queue *q, char *result, char *caller_name)
     {
         // printf("in %s: trying to acquire items_available for %s (start pop)\n",
         //        q->name, caller_name);
-        rv = sem_wait(&q->items_available);
-        if (rv == -1)
+        if (q->is_one_use_only)
         {
-            fprintf(stderr, "Error in sem_wait");
-            exit(1);
+            rv = sem_trywait(&q->items_available);
+            if (rv == -1)
+            {
+                if (errno == EAGAIN)
+                {
+                    return NULL;
+                }
+                else
+                {
+                    fprintf(stderr, "Error in sem_wait");
+                    exit(1);
+                }
+            }
+        }
+        else
+        {
+            rv = sem_wait(&q->items_available);
+            if (rv == -1)
+            {
+                fprintf(stderr, "Error in sem_wait");
+                exit(1);
+            }
         }
         rv = sem_wait(&q->mutex);
         if (rv == -1)
